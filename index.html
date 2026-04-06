@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bill Scanner - Reimbursements Portal</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧾</text></svg>">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-content">
+      <span class="header-icon">🧾</span>
+      <div>
+        <h1>Bill Scanner - Reimbursements Portal</h1>
+        <p>Upload bills, extract details with AI, and submit for reimbursement</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="container">
+    <div class="main-grid">
+
+      <!-- Left Column: Upload & Scan -->
+      <div>
+        <div class="card card-relative">
+          <div class="card-header">
+            <span class="icon">📤</span>
+            <h2>Upload Bill</h2>
+          </div>
+          <div class="card-body">
+            <!-- Upload Zone -->
+            <div class="upload-zone" id="uploadZone">
+              <span class="upload-icon">☁️</span>
+              <p><strong>Click to upload</strong> or drag and drop</p>
+              <p class="file-types">Supports JPG, PNG, WEBP, and PDF</p>
+            </div>
+            <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,application/pdf" hidden>
+
+            <!-- Preview -->
+            <div class="preview-container" id="previewContainer">
+              <img id="previewImage" alt="Bill preview">
+              <div class="pdf-indicator" id="pdfIndicator" style="display:none;">
+                <span class="pdf-icon">📄</span>
+                <span id="pdfFileName">document.pdf</span>
+              </div>
+              <p class="file-name" id="fileName"></p>
+            </div>
+
+            <!-- Scan Button -->
+            <button class="btn btn-primary btn-scan" id="scanBtn" disabled>
+              <span id="scanBtnText">🔍 Scan Bill</span>
+            </button>
+          </div>
+
+          <!-- Loading overlay -->
+          <div class="loading-overlay" id="scanLoading">
+            <div class="spinner spinner-dark"></div>
+            <p class="scanning-text">Analyzing bill with AI...</p>
+          </div>
+        </div>
+
+        <!-- Extracted Results -->
+        <div class="card extracted-info" id="extractedCard" style="margin-top: 24px;">
+          <div class="card-header">
+            <span class="icon">📋</span>
+            <h2>Extracted Information</h2>
+          </div>
+          <div class="card-body">
+            <div class="info-grid">
+              <div class="info-item">
+                <div class="info-label">Company</div>
+                <div class="info-value" id="extractedCompany">--</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Date</div>
+                <div class="info-value" id="extractedDate">--</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Total Amount</div>
+                <div class="info-value amount-display" id="extractedAmount">--</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Tax</div>
+                <div class="info-value" id="extractedTax">--</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Currency</div>
+                <div class="info-value" id="extractedCurrency">--</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Category</div>
+                <div class="info-value" id="extractedCategory">--</div>
+              </div>
+            </div>
+
+            <!-- Line Items -->
+            <div class="line-items-section" id="lineItemsSection" style="display:none;">
+              <h3>Line Items</h3>
+              <table class="line-items-table">
+                <thead>
+                  <tr>
+                    <th>Description</th>
+                    <th style="text-align:right;">Amount</th>
+                  </tr>
+                </thead>
+                <tbody id="lineItemsBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Submission Form -->
+      <div>
+        <div class="card card-relative">
+          <div class="card-header">
+            <span class="icon">📝</span>
+            <h2>Submit Reimbursement</h2>
+          </div>
+          <div class="card-body">
+            <form id="reimbursementForm">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="submitterName">Your Name *</label>
+                  <input type="text" id="submitterName" placeholder="John Doe" required>
+                </div>
+                <div class="form-group">
+                  <label for="submitterEmail">Email *</label>
+                  <input type="email" id="submitterEmail" placeholder="john@company.com" required>
+                </div>
+              </div>
+
+              <hr class="divider">
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="formCompany">Company / Vendor</label>
+                  <input type="text" id="formCompany" placeholder="Extracted from bill">
+                </div>
+                <div class="form-group">
+                  <label for="formDate">Bill Date</label>
+                  <input type="date" id="formDate">
+                </div>
+              </div>
+
+              <div class="form-row-3">
+                <div class="form-group">
+                  <label for="formAmount">Total Amount *</label>
+                  <input type="number" id="formAmount" step="0.01" placeholder="0.00" required>
+                </div>
+                <div class="form-group">
+                  <label for="formCurrency">Currency</label>
+                  <select id="formCurrency">
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                    <option value="INR">INR</option>
+                    <option value="CAD">CAD</option>
+                    <option value="AUD">AUD</option>
+                    <option value="JPY">JPY</option>
+                    <option value="CNY">CNY</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="formTax">Tax Amount</label>
+                  <input type="number" id="formTax" step="0.01" placeholder="0.00">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="formCategory">Category *</label>
+                <select id="formCategory" required>
+                  <option value="">Select category...</option>
+                  <option value="food">Food & Dining</option>
+                  <option value="travel">Travel & Transport</option>
+                  <option value="accommodation">Accommodation</option>
+                  <option value="office">Office Supplies</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="formPurpose">Purpose / Notes *</label>
+                <textarea id="formPurpose" placeholder="Brief description of the expense..." required></textarea>
+              </div>
+
+              <button type="submit" class="btn btn-success btn-block" id="submitBtn" disabled>
+                <span id="submitBtnText">Submit Reimbursement</span>
+              </button>
+            </form>
+          </div>
+
+          <!-- Submit loading overlay -->
+          <div class="loading-overlay" id="submitLoading">
+            <div class="spinner spinner-dark"></div>
+            <p>Submitting reimbursement...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Submissions -->
+    <div class="card">
+      <div class="card-header">
+        <span class="icon">📊</span>
+        <h2>Recent Submissions</h2>
+      </div>
+      <div class="card-body" style="padding: 0;">
+        <div class="submissions-table-wrapper">
+          <table class="submissions-table" id="submissionsTable">
+            <thead>
+              <tr>
+                <th>Date Submitted</th>
+                <th>Submitted By</th>
+                <th>Company</th>
+                <th>Amount</th>
+                <th>Category</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="submissionsBody">
+              <tr>
+                <td colspan="6">
+                  <div class="empty-state">
+                    <span class="empty-icon">📭</span>
+                    <p>No submissions yet. Upload a bill to get started!</p>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="config.js"></script>
+  <script type="module" src="app.js"></script>
+
+</body>
+</html>
