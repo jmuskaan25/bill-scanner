@@ -9,6 +9,12 @@
 </head>
 <body>
 
+  <!-- Signing-in overlay -->
+  <div id="signingInOverlay" style="display:none; position:fixed; inset:0; z-index:10000; background:#f9fafb; flex-direction:column; align-items:center; justify-content:center; gap:16px;">
+    <div style="width:36px;height:36px;border:3px solid #e5e7eb;border-top-color:#2563eb;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+    <p style="color:#374151;font-size:16px;font-weight:500;margin:0;">Signing you in...</p>
+  </div>
+
   <!-- Sign-In Wall (inline styles ensure it shows before CSS loads) -->
   <div id="signInWall" class="signin-wall" style="display:flex; position:fixed; inset:0; z-index:9999; background:#f9fafb; align-items:center; justify-content:center;">
     <div class="signin-card">

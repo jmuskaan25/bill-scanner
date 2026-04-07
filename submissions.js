@@ -4,7 +4,7 @@
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import { getFirestore, collection, getDocs, orderBy, limit, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { getAuth, signInWithRedirect, getRedirectResult, onAuthStateChanged, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
 // ---- Firebase Init ----
 let db = null;
@@ -24,35 +24,41 @@ const toastContainer = document.getElementById('toastContainer');
 const signInWall = document.getElementById('signInWall');
 const wallSignInBtn = document.getElementById('wallSignInBtn');
 
-// Hide wall immediately if already authed or mid-sign-in
-if ((sessionStorage.getItem('via_authed') === '1' || sessionStorage.getItem('via_signing_in') === '1') && signInWall) {
-  signInWall.style.display = 'none';
+const signingInOverlay = document.getElementById('signingInOverlay');
+const isSigningIn = localStorage.getItem('via_signing_in') === '1';
+const isAuthed = localStorage.getItem('via_authed') === '1';
+
+if (signInWall && (isAuthed || isSigningIn)) signInWall.style.display = 'none';
+if (isSigningIn && signingInOverlay) signingInOverlay.style.display = 'flex';
+
+let currentUser = null;
+
+function onSignedIn(user) {
+  currentUser = user;
+  localStorage.setItem('via_authed', '1');
+  localStorage.removeItem('via_signing_in');
+  if (signInWall) signInWall.style.display = 'none';
+  if (signingInOverlay) signingInOverlay.style.display = 'none';
+  loadRecentSubmissions();
+}
+
+function showWall() {
+  localStorage.removeItem('via_authed');
+  localStorage.removeItem('via_signing_in');
+  if (signingInOverlay) signingInOverlay.style.display = 'none';
+  if (signInWall) signInWall.style.display = 'flex';
 }
 
 // ---- Auth ----
 if (auth) {
   getRedirectResult(auth)
     .then(result => { if (result?.user) onSignedIn(result.user); })
-    .catch(() => { sessionStorage.removeItem('via_signing_in'); });
+    .catch(err => { console.error(err); showWall(); });
 
   onAuthStateChanged(auth, (user) => {
     if (user) onSignedIn(user);
-    else {
-      sessionStorage.removeItem('via_authed');
-      sessionStorage.removeItem('via_signing_in');
-      signInWall.style.display = 'flex';
-    }
+    else if (!isSigningIn) showWall();
   });
-}
-
-let currentUser = null;
-
-function onSignedIn(user) {
-  currentUser = user;
-  sessionStorage.setItem('via_authed', '1');
-  sessionStorage.removeItem('via_signing_in');
-  signInWall.style.display = 'none';
-  loadRecentSubmissions();
 }
 
 // Wall sign-in button
@@ -64,16 +70,8 @@ wallSignInBtn.addEventListener('click', async () => {
   try {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (popupErr) {
-      if (popupErr.code === 'auth/popup-blocked' || popupErr.code === 'auth/popup-cancelled') {
-        sessionStorage.setItem('via_signing_in', '1');
-        await signInWithRedirect(auth, provider);
-      } else {
-        throw popupErr;
-      }
-    }
+    localStorage.setItem('via_signing_in', '1');
+    await signInWithRedirect(auth, provider);
   } catch (err) {
     if (err.code !== 'auth/popup-closed-by-user') {
       console.error('Sign-in error:', err);

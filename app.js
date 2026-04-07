@@ -6,7 +6,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getFirestore, collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js';
-import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { getAuth, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
 // ---- Firebase Init ----
 let db = null;
@@ -59,39 +59,59 @@ const signOutLink = document.getElementById('signOutLink');
 const signInWall = document.getElementById('signInWall');
 const wallSignInBtn = document.getElementById('wallSignInBtn');
 
-// Hide wall immediately if already authed or mid-sign-in (prevents flash)
-if ((sessionStorage.getItem('via_authed') === '1' || sessionStorage.getItem('via_signing_in') === '1') && signInWall) {
-  signInWall.style.display = 'none';
+// ---- Auth state helpers ----
+const signingInOverlay = document.getElementById('signingInOverlay');
+const isSigningIn = localStorage.getItem('via_signing_in') === '1';
+const isAuthed = localStorage.getItem('via_authed') === '1';
+
+// Immediately hide wall if we know user is authed or mid-redirect
+if (signInWall) {
+  if (isAuthed || isSigningIn) signInWall.style.display = 'none';
+}
+// Show loading overlay if mid-redirect
+if (isSigningIn && signingInOverlay) {
+  signingInOverlay.style.display = 'flex';
 }
 
-// ---- Auth ----
-function handleUser(user) {
+function showUser(user) {
   currentUser = user;
-  if (user) {
-    sessionStorage.setItem('via_authed', '1');
-    sessionStorage.removeItem('via_signing_in');
-    signInWall.style.display = 'none';
-    if (signedOutView) signedOutView.style.display = 'none';
-    signedInView.style.display = 'flex';
-    userAvatar.src = user.photoURL || '';
-    userName.textContent = user.displayName || 'User';
-    if (userEmail) userEmail.textContent = user.email || '';
-  } else {
-    sessionStorage.removeItem('via_authed');
-    sessionStorage.removeItem('via_signing_in');
-    signInWall.style.display = 'flex';
-    if (signedOutView) signedOutView.style.display = 'block';
-    signedInView.style.display = 'none';
-  }
+  localStorage.setItem('via_authed', '1');
+  localStorage.removeItem('via_signing_in');
+  if (signInWall) signInWall.style.display = 'none';
+  if (signingInOverlay) signingInOverlay.style.display = 'none';
+  if (signedOutView) signedOutView.style.display = 'none';
+  signedInView.style.display = 'flex';
+  userAvatar.src = user.photoURL || '';
+  userName.textContent = user.displayName || 'User';
+  if (userEmail) userEmail.textContent = user.email || '';
+}
+
+function showWall() {
+  localStorage.removeItem('via_authed');
+  localStorage.removeItem('via_signing_in');
+  if (signingInOverlay) signingInOverlay.style.display = 'none';
+  if (signInWall) signInWall.style.display = 'flex';
+  if (signedOutView) signedOutView.style.display = 'block';
+  signedInView.style.display = 'none';
 }
 
 if (auth) {
-  // Handle redirect result first (iOS Safari falls back to redirect)
+  // Resolve redirect result — this runs before onAuthStateChanged on redirect return
   getRedirectResult(auth)
-    .then(result => { if (result?.user) handleUser(result.user); })
-    .catch(() => { sessionStorage.removeItem('via_signing_in'); });
+    .then(result => {
+      if (result?.user) showUser(result.user);
+      // If no result, onAuthStateChanged handles it
+    })
+    .catch(err => {
+      console.error('Redirect error:', err);
+      showWall();
+    });
 
-  onAuthStateChanged(auth, handleUser);
+  // onAuthStateChanged fires after getRedirectResult resolves
+  onAuthStateChanged(auth, (user) => {
+    if (user) showUser(user);
+    else if (!isSigningIn) showWall(); // Only show wall if not mid-redirect
+  });
 }
 
 // Wall sign-in button
@@ -103,16 +123,8 @@ wallSignInBtn.addEventListener('click', async () => {
   try {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (popupErr) {
-      if (popupErr.code === 'auth/popup-blocked' || popupErr.code === 'auth/popup-cancelled') {
-        sessionStorage.setItem('via_signing_in', '1');
-        await signInWithRedirect(auth, provider);
-      } else {
-        throw popupErr;
-      }
-    }
+    localStorage.setItem('via_signing_in', '1');
+    await signInWithRedirect(auth, provider);
   } catch (err) {
     if (err.code !== 'auth/popup-closed-by-user') {
       console.error('Sign-in error:', err);
@@ -129,16 +141,8 @@ if (googleSignInBtn) googleSignInBtn.addEventListener('click', async () => {
   try {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (popupErr) {
-      if (popupErr.code === 'auth/popup-blocked' || popupErr.code === 'auth/popup-cancelled') {
-        sessionStorage.setItem('via_signing_in', '1');
-        await signInWithRedirect(auth, provider);
-      } else {
-        throw popupErr;
-      }
-    }
+    localStorage.setItem('via_signing_in', '1');
+    await signInWithRedirect(auth, provider);
   } catch (err) {
     if (err.code !== 'auth/popup-closed-by-user') {
       console.error('Sign-in error:', err);
