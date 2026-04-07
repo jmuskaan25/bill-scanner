@@ -3,240 +3,243 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bill Scanner - Reimbursements Portal</title>
+  <title>Cab Bill Scanner - Reimbursements Portal</title>
   <link rel="stylesheet" href="styles.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧾</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚕</text></svg>">
 </head>
 <body>
 
   <!-- Header -->
   <header class="header">
     <div class="header-content">
-      <span class="header-icon">🧾</span>
+      <span class="header-icon">🚕</span>
       <div>
-        <h1>Bill Scanner - Reimbursements Portal</h1>
-        <p>Upload bills, extract details with AI, and submit for reimbursement</p>
+        <h1>Cab Bill Scanner - Reimbursements Portal</h1>
+        <p>Upload Uber, Rapido, Ola receipts &mdash; extract details with AI and submit for reimbursement</p>
       </div>
     </div>
   </header>
 
   <!-- Main Content -->
   <div class="container">
-    <div class="main-grid">
 
-      <!-- Left Column: Upload & Scan -->
-      <div>
-        <div class="card card-relative">
-          <div class="card-header">
-            <span class="icon">📤</span>
-            <h2>Upload Bill</h2>
-          </div>
-          <div class="card-body">
-            <!-- Upload Zone -->
-            <div class="upload-zone" id="uploadZone">
-              <span class="upload-icon">☁️</span>
-              <p><strong>Click to upload</strong> or drag and drop</p>
-              <p class="file-types">Supports JPG, PNG, WEBP, and PDF</p>
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+      <button class="tab active" data-tab="upload">📤 Submit Bill</button>
+      <button class="tab" data-tab="submissions">📊 Submissions</button>
+    </div>
+
+    <!-- Tab: Upload + Form -->
+    <div class="tab-content" id="tab-upload">
+      <div class="main-grid">
+
+        <!-- Left Column: Upload & Scan -->
+        <div>
+          <div class="card card-relative">
+            <div class="card-header">
+              <span class="icon">📤</span>
+              <h2>Upload Cab Receipt</h2>
             </div>
-            <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,application/pdf" hidden>
+            <div class="card-body">
+              <!-- Upload Zone -->
+              <div class="upload-zone" id="uploadZone">
+                <span class="upload-icon">☁️</span>
+                <p><strong>Click to upload</strong> or drag and drop</p>
+                <p class="file-types">Supports JPG, PNG, WEBP, and PDF</p>
+              </div>
+              <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,application/pdf" hidden>
 
-            <!-- Preview -->
-            <div class="preview-container" id="previewContainer">
-              <img id="previewImage" alt="Bill preview">
-              <div class="pdf-indicator" id="pdfIndicator" style="display:none;">
-                <span class="pdf-icon">📄</span>
-                <span id="pdfFileName">document.pdf</span>
-              </div>
-              <p class="file-name" id="fileName"></p>
-            </div>
-
-            <!-- Scan Button -->
-            <button class="btn btn-primary btn-scan" id="scanBtn" disabled>
-              <span id="scanBtnText">🔍 Scan Bill</span>
-            </button>
-          </div>
-
-          <!-- Loading overlay -->
-          <div class="loading-overlay" id="scanLoading">
-            <div class="spinner spinner-dark"></div>
-            <p class="scanning-text">Analyzing bill with AI...</p>
-          </div>
-        </div>
-
-        <!-- Extracted Results -->
-        <div class="card extracted-info" id="extractedCard" style="margin-top: 24px;">
-          <div class="card-header">
-            <span class="icon">📋</span>
-            <h2>Extracted Information</h2>
-          </div>
-          <div class="card-body">
-            <div class="info-grid">
-              <div class="info-item">
-                <div class="info-label">Company</div>
-                <div class="info-value" id="extractedCompany">--</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">Date</div>
-                <div class="info-value" id="extractedDate">--</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">Total Amount</div>
-                <div class="info-value amount-display" id="extractedAmount">--</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">Tax</div>
-                <div class="info-value" id="extractedTax">--</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">Currency</div>
-                <div class="info-value" id="extractedCurrency">--</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">Category</div>
-                <div class="info-value" id="extractedCategory">--</div>
-              </div>
-            </div>
-
-            <!-- Line Items -->
-            <div class="line-items-section" id="lineItemsSection" style="display:none;">
-              <h3>Line Items</h3>
-              <table class="line-items-table">
-                <thead>
-                  <tr>
-                    <th>Description</th>
-                    <th style="text-align:right;">Amount</th>
-                  </tr>
-                </thead>
-                <tbody id="lineItemsBody"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right Column: Submission Form -->
-      <div>
-        <div class="card card-relative">
-          <div class="card-header">
-            <span class="icon">📝</span>
-            <h2>Submit Reimbursement</h2>
-          </div>
-          <div class="card-body">
-            <form id="reimbursementForm">
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="submitterName">Your Name *</label>
-                  <input type="text" id="submitterName" placeholder="John Doe" required>
+              <!-- Preview -->
+              <div class="preview-container" id="previewContainer">
+                <img id="previewImage" alt="Receipt preview">
+                <div class="pdf-indicator" id="pdfIndicator" style="display:none;">
+                  <span class="pdf-icon">📄</span>
+                  <span id="pdfFileName">document.pdf</span>
                 </div>
-                <div class="form-group">
-                  <label for="submitterEmail">Email *</label>
-                  <input type="email" id="submitterEmail" placeholder="john@company.com" required>
-                </div>
+                <p class="file-name" id="fileName"></p>
               </div>
 
-              <hr class="divider">
-
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="formCompany">Company / Vendor</label>
-                  <input type="text" id="formCompany" placeholder="Extracted from bill">
-                </div>
-                <div class="form-group">
-                  <label for="formDate">Bill Date</label>
-                  <input type="date" id="formDate">
-                </div>
-              </div>
-
-              <div class="form-row-3">
-                <div class="form-group">
-                  <label for="formAmount">Total Amount *</label>
-                  <input type="number" id="formAmount" step="0.01" placeholder="0.00" required>
-                </div>
-                <div class="form-group">
-                  <label for="formCurrency">Currency</label>
-                  <select id="formCurrency">
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                    <option value="GBP">GBP</option>
-                    <option value="INR">INR</option>
-                    <option value="CAD">CAD</option>
-                    <option value="AUD">AUD</option>
-                    <option value="JPY">JPY</option>
-                    <option value="CNY">CNY</option>
-                    <option value="OTHER">Other</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="formTax">Tax Amount</label>
-                  <input type="number" id="formTax" step="0.01" placeholder="0.00">
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label for="formCategory">Category *</label>
-                <select id="formCategory" required>
-                  <option value="">Select category...</option>
-                  <option value="food">Food & Dining</option>
-                  <option value="travel">Travel & Transport</option>
-                  <option value="accommodation">Accommodation</option>
-                  <option value="office">Office Supplies</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="formPurpose">Purpose / Notes *</label>
-                <textarea id="formPurpose" placeholder="Brief description of the expense..." required></textarea>
-              </div>
-
-              <button type="submit" class="btn btn-success btn-block" id="submitBtn" disabled>
-                <span id="submitBtnText">Submit Reimbursement</span>
+              <!-- Scan Button -->
+              <button class="btn btn-primary btn-scan" id="scanBtn" disabled>
+                <span id="scanBtnText">🔍 Scan Receipt</span>
               </button>
-            </form>
-          </div>
+            </div>
 
-          <!-- Submit loading overlay -->
-          <div class="loading-overlay" id="submitLoading">
-            <div class="spinner spinner-dark"></div>
-            <p>Submitting reimbursement...</p>
+            <!-- Loading overlay -->
+            <div class="loading-overlay" id="scanLoading">
+              <div class="spinner spinner-dark"></div>
+              <p class="scanning-text">Analyzing receipt with AI...</p>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- Recent Submissions -->
-    <div class="card">
-      <div class="card-header">
-        <span class="icon">📊</span>
-        <h2>Recent Submissions</h2>
-      </div>
-      <div class="card-body" style="padding: 0;">
-        <div class="submissions-table-wrapper">
-          <table class="submissions-table" id="submissionsTable">
-            <thead>
-              <tr>
-                <th>Date Submitted</th>
-                <th>Submitted By</th>
-                <th>Company</th>
-                <th>Amount</th>
-                <th>Category</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="submissionsBody">
-              <tr>
-                <td colspan="6">
-                  <div class="empty-state">
-                    <span class="empty-icon">📭</span>
-                    <p>No submissions yet. Upload a bill to get started!</p>
+        <!-- Right Column: Submission Form -->
+        <div>
+          <div class="card card-relative">
+            <div class="card-header">
+              <span class="icon">📝</span>
+              <h2>Submit Reimbursement</h2>
+            </div>
+            <div class="card-body">
+
+              <!-- Google Sign-In / User Card -->
+              <div id="authSection">
+                <div id="signedOutView">
+                  <button type="button" class="google-signin-btn" id="googleSignInBtn">
+                    <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+                    Sign in with Google to submit
+                  </button>
+                </div>
+                <div id="signedInView" style="display:none;">
+                  <div class="user-card">
+                    <img id="userAvatar" src="" alt="Avatar">
+                    <div class="user-card-info">
+                      <div class="user-card-name" id="userName"></div>
+                      <div class="user-card-email" id="userEmail"></div>
+                    </div>
+                    <span class="sign-out-link" id="signOutLink">Sign out</span>
                   </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                </div>
+              </div>
+
+              <form id="reimbursementForm">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="formProvider">Provider</label>
+                    <select id="formProvider">
+                      <option value="">Select provider...</option>
+                      <option value="Uber">Uber</option>
+                      <option value="Rapido">Rapido</option>
+                      <option value="Ola">Ola</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="formRideId">Ride ID / Booking ID</label>
+                    <input type="text" id="formRideId" placeholder="Extracted from receipt">
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="formRiderName">Rider Name (on bill)</label>
+                    <input type="text" id="formRiderName" placeholder="Passenger name">
+                  </div>
+                  <div class="form-group">
+                    <label for="formDriverName">Driver Name</label>
+                    <input type="text" id="formDriverName" placeholder="Driver name">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="formVehicleNumber">Vehicle Number</label>
+                  <input type="text" id="formVehicleNumber" placeholder="License plate">
+                </div>
+
+                <div class="form-group">
+                  <label for="formPickup">Pickup (source address)</label>
+                  <input type="text" id="formPickup" placeholder="Pickup location">
+                </div>
+
+                <div class="form-group">
+                  <label for="formDrop">Drop (destination address)</label>
+                  <input type="text" id="formDrop" placeholder="Drop location">
+                </div>
+
+                <hr class="divider">
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="formDate">Bill Date</label>
+                    <input type="date" id="formDate">
+                  </div>
+                  <div class="form-group">
+                    <label for="formAmount">Total Amount *</label>
+                    <input type="number" id="formAmount" step="0.01" placeholder="0.00" required>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="formCurrency">Currency</label>
+                    <select id="formCurrency">
+                      <option value="INR" selected>INR</option>
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                      <option value="GBP">GBP</option>
+                      <option value="CAD">CAD</option>
+                      <option value="AUD">AUD</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="formPaymentMethod">Payment Method</label>
+                    <select id="formPaymentMethod">
+                      <option value="cash">Cash</option>
+                      <option value="upi">UPI</option>
+                      <option value="card">Card</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="formPurpose">Purpose / Notes</label>
+                  <textarea id="formPurpose" placeholder="Brief description of the ride..."></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-success btn-block" id="submitBtn" disabled>
+                  <span id="submitBtnText">Submit Reimbursement</span>
+                </button>
+              </form>
+            </div>
+
+            <!-- Submit loading overlay -->
+            <div class="loading-overlay" id="submitLoading">
+              <div class="spinner spinner-dark"></div>
+              <p>Submitting reimbursement...</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
+
+    <!-- Tab: Submissions -->
+    <div class="tab-content hidden" id="tab-submissions">
+      <div class="card">
+        <div class="card-header">
+          <span class="icon">📊</span>
+          <h2>Recent Submissions</h2>
+        </div>
+        <div class="card-body" style="padding: 0;">
+          <div class="submissions-table-wrapper">
+            <table class="submissions-table" id="submissionsTable">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Submitted By</th>
+                  <th>Provider</th>
+                  <th>Ride ID</th>
+                  <th>Route</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="submissionsBody">
+                <tr>
+                  <td colspan="7">
+                    <div class="empty-state">
+                      <span class="empty-icon">📭</span>
+                      <p>No submissions yet. Upload a cab receipt to get started!</p>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- Toast Container -->

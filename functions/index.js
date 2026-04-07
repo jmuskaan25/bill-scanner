@@ -34,10 +34,11 @@ exports.scanBill = onCall(
     }
     contentBlocks.push({
       type: 'text',
-      text: 'Extract bill/receipt information and return JSON with these fields: companyName (string), date (YYYY-MM-DD format), totalAmount (number), currency (3-letter code like USD, EUR, INR), taxAmount (number or null), lineItems (array of {description, amount}), category (one of: food, travel, accommodation, office, other). Return ONLY valid JSON, no markdown code fences, no explanation.'
+      text: 'Extract ride/cab receipt information and return JSON with these exact fields:\n- provider: string (e.g. "Uber", "Rapido", "Ola", "Auto" — infer from logo/brand)\n- rideId: string (booking ID, ride ID, or trip ID)\n- riderName: string (customer/passenger name on the receipt)\n- driverName: string (driver name if present, else null)\n- vehicleNumber: string (license plate if present, else null)\n- pickup: string (source/pickup address)\n- drop: string (destination/drop address)\n- date: string (YYYY-MM-DD format)\n- totalAmount: number (final amount paid)\n- currency: string (3-letter code, e.g. "INR")\n- paymentMethod: string ("cash", "upi", or "card")\n\nReturn ONLY valid JSON, no markdown, no explanation.'
     });
 
     try {
+      console.log('Calling Anthropic API, key prefix:', claudeApiKey.value().substring(0, 20));
       const response = await client.messages.create({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
@@ -51,7 +52,8 @@ exports.scanBill = onCall(
 
       return JSON.parse(jsonStr);
     } catch (err) {
-      throw new HttpsError('internal', `Claude API error: ${err.message}`);
+      console.error('Anthropic error:', err.constructor.name, err.message, err.status, err.error);
+      throw new HttpsError('internal', `Claude API error: ${err.constructor.name}: ${err.message}`);
     }
   }
 );

@@ -1,24 +1,26 @@
 // ============================================
-// Bill Scanner - Main Application Logic
+// Cab Bill Scanner - Main Application Logic
 // ============================================
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import { getFirestore, collection, addDoc, getDocs, orderBy, limit, query, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js';
-import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { getAuth, signInWithPopup, signOut, onAuthStateChanged, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
 // ---- Firebase Init ----
 let db = null;
 let storage = null;
 let functions = null;
+let auth = null;
+let currentUser = null;
 
 try {
   const app = initializeApp(CONFIG.FIREBASE);
   db = getFirestore(app);
   storage = getStorage(app);
   functions = getFunctions(app);
-  signInAnonymously(getAuth(app)).catch(e => console.warn('Anon sign-in failed:', e));
+  auth = getAuth(app);
 } catch (e) {
   console.warn('Firebase not configured yet. Submissions will not be saved.', e);
 }
@@ -26,7 +28,6 @@ try {
 // ---- State ----
 let currentFile = null;
 let currentBase64 = null;
-let extractedData = null;
 
 // ---- DOM Refs ----
 const uploadZone = document.getElementById('uploadZone');
@@ -39,13 +40,87 @@ const fileNameEl = document.getElementById('fileName');
 const scanBtn = document.getElementById('scanBtn');
 const scanBtnText = document.getElementById('scanBtnText');
 const scanLoading = document.getElementById('scanLoading');
-const extractedCard = document.getElementById('extractedCard');
 const submitBtn = document.getElementById('submitBtn');
 const submitBtnText = document.getElementById('submitBtnText');
 const submitLoading = document.getElementById('submitLoading');
 const reimbursementForm = document.getElementById('reimbursementForm');
 const toastContainer = document.getElementById('toastContainer');
 const submissionsBody = document.getElementById('submissionsBody');
+
+// Auth DOM refs
+const signedOutView = document.getElementById('signedOutView');
+const signedInView = document.getElementById('signedInView');
+const googleSignInBtn = document.getElementById('googleSignInBtn');
+const userAvatar = document.getElementById('userAvatar');
+const userName = document.getElementById('userName');
+const userEmail = document.getElementById('userEmail');
+const signOutLink = document.getElementById('signOutLink');
+
+// ---- Auth ----
+if (auth) {
+  onAuthStateChanged(auth, (user) => {
+    currentUser = user;
+    if (user) {
+      signedOutView.style.display = 'none';
+      signedInView.style.display = 'block';
+      userAvatar.src = user.photoURL || '';
+      userName.textContent = user.displayName || 'User';
+      userEmail.textContent = user.email || '';
+      // Enable submit if amount is filled
+      if (document.getElementById('formAmount').value) {
+        submitBtn.disabled = false;
+      }
+    } else {
+      signedOutView.style.display = 'block';
+      signedInView.style.display = 'none';
+      submitBtn.disabled = true;
+    }
+  });
+}
+
+googleSignInBtn.addEventListener('click', async () => {
+  if (!auth) {
+    showToast('Firebase not initialized.', 'error');
+    return;
+  }
+  try {
+    await signInWithPopup(auth, new GoogleAuthProvider());
+  } catch (err) {
+    if (err.code !== 'auth/popup-closed-by-user') {
+      console.error('Sign-in error:', err);
+      showToast(`Sign-in failed: ${err.message}`, 'error');
+    }
+  }
+});
+
+signOutLink.addEventListener('click', async () => {
+  if (!auth) return;
+  try {
+    await signOut(auth);
+    showToast('Signed out.', 'info');
+  } catch (err) {
+    console.error('Sign-out error:', err);
+  }
+});
+
+// ---- Tab Switching ----
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    // Update active tab
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+
+    // Show/hide content
+    document.querySelectorAll('.tab-content').forEach(tc => tc.classList.add('hidden'));
+    const target = tab.getAttribute('data-tab');
+    document.getElementById(`tab-${target}`).classList.remove('hidden');
+
+    // Refresh submissions when switching to that tab
+    if (target === 'submissions') {
+      loadRecentSubmissions();
+    }
+  });
+});
 
 // ---- Toast Notifications ----
 function showToast(message, type = 'info') {
@@ -93,8 +168,6 @@ function handleFileUpload(file) {
   }
 
   currentFile = file;
-  extractedData = null;
-  extractedCard.classList.remove('visible');
 
   // Read file as base64
   const reader = new FileReader();
@@ -141,84 +214,47 @@ async function scanBill() {
   try {
     const scanBillFn = httpsCallable(functions, 'scanBill');
     const result = await scanBillFn({ imageBase64: currentBase64, mediaType: currentFile.type });
-    extractedData = result.data;
-    displayExtractedData(extractedData);
-    populateForm(extractedData);
-    showToast('Bill scanned successfully!', 'success');
+    const data = result.data;
+
+    // Populate cab-specific fields
+    document.getElementById('formProvider').value = data.provider || '';
+    document.getElementById('formRideId').value = data.rideId || '';
+    document.getElementById('formRiderName').value = data.riderName || '';
+    document.getElementById('formDriverName').value = data.driverName || '';
+    document.getElementById('formVehicleNumber').value = data.vehicleNumber || '';
+    document.getElementById('formPickup').value = data.pickup || '';
+    document.getElementById('formDrop').value = data.drop || '';
+    document.getElementById('formDate').value = data.date || '';
+    document.getElementById('formAmount').value = data.totalAmount || '';
+    document.getElementById('formPaymentMethod').value = data.paymentMethod || 'cash';
+
+    // Set currency
+    if (data.currency) {
+      const currencySelect = document.getElementById('formCurrency');
+      const option = Array.from(currencySelect.options).find(
+        o => o.value.toLowerCase() === data.currency.toLowerCase()
+      );
+      if (option) {
+        currencySelect.value = option.value;
+      } else {
+        currencySelect.value = 'OTHER';
+      }
+    }
+
+    // Enable submit if user is signed in
+    if (currentUser) {
+      submitBtn.disabled = false;
+    }
+
+    showToast('Receipt scanned successfully!', 'success');
   } catch (err) {
     console.error('Scan error:', err);
     showToast(`Scan failed: ${err.message}`, 'error');
   } finally {
     scanBtn.disabled = false;
-    scanBtnText.innerHTML = '🔍 Scan Bill';
+    scanBtnText.innerHTML = '🔍 Scan Receipt';
     scanLoading.classList.remove('visible');
   }
-}
-
-
-function displayExtractedData(data) {
-  document.getElementById('extractedCompany').textContent = data.companyName || '--';
-  document.getElementById('extractedDate').textContent = data.date || '--';
-  document.getElementById('extractedAmount').textContent =
-    data.totalAmount != null ? `${data.currency || ''} ${Number(data.totalAmount).toFixed(2)}` : '--';
-  document.getElementById('extractedTax').textContent =
-    data.taxAmount != null ? `${data.currency || ''} ${Number(data.taxAmount).toFixed(2)}` : 'N/A';
-  document.getElementById('extractedCurrency').textContent = data.currency || '--';
-  document.getElementById('extractedCategory').textContent = data.category
-    ? data.category.charAt(0).toUpperCase() + data.category.slice(1)
-    : '--';
-
-  // Line items
-  const lineItemsSection = document.getElementById('lineItemsSection');
-  const lineItemsBody = document.getElementById('lineItemsBody');
-  lineItemsBody.innerHTML = '';
-
-  if (data.lineItems && data.lineItems.length > 0) {
-    lineItemsSection.style.display = 'block';
-    data.lineItems.forEach(item => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${escapeHtml(item.description || '')}</td>
-        <td style="text-align:right;">${item.amount != null ? Number(item.amount).toFixed(2) : '--'}</td>
-      `;
-      lineItemsBody.appendChild(tr);
-    });
-  } else {
-    lineItemsSection.style.display = 'none';
-  }
-
-  extractedCard.classList.add('visible');
-}
-
-function populateForm(data) {
-  if (data.companyName) document.getElementById('formCompany').value = data.companyName;
-  if (data.date) document.getElementById('formDate').value = data.date;
-  if (data.totalAmount != null) document.getElementById('formAmount').value = data.totalAmount;
-  if (data.taxAmount != null) document.getElementById('formTax').value = data.taxAmount;
-
-  // Set currency
-  if (data.currency) {
-    const currencySelect = document.getElementById('formCurrency');
-    const option = Array.from(currencySelect.options).find(
-      o => o.value.toLowerCase() === data.currency.toLowerCase()
-    );
-    if (option) {
-      currencySelect.value = option.value;
-    } else {
-      currencySelect.value = 'OTHER';
-    }
-  }
-
-  // Set category
-  if (data.category) {
-    const catSelect = document.getElementById('formCategory');
-    const option = Array.from(catSelect.options).find(
-      o => o.value.toLowerCase() === data.category.toLowerCase()
-    );
-    if (option) catSelect.value = option.value;
-  }
-
-  submitBtn.disabled = false;
 }
 
 // ---- Submit Reimbursement ----
@@ -233,23 +269,31 @@ async function submitReimbursement() {
     return;
   }
 
-  if (!currentFile) {
-    showToast('Please upload a bill first.', 'error');
+  if (!currentUser) {
+    showToast('Please sign in with Google first.', 'error');
     return;
   }
 
-  const name = document.getElementById('submitterName').value.trim();
-  const email = document.getElementById('submitterEmail').value.trim();
-  const purpose = document.getElementById('formPurpose').value.trim();
-  const companyName = document.getElementById('formCompany').value.trim();
-  const billDate = document.getElementById('formDate').value;
-  const totalAmount = parseFloat(document.getElementById('formAmount').value);
-  const currency = document.getElementById('formCurrency').value;
-  const taxAmount = parseFloat(document.getElementById('formTax').value) || null;
-  const category = document.getElementById('formCategory').value;
+  if (!currentFile) {
+    showToast('Please upload a receipt first.', 'error');
+    return;
+  }
 
-  if (!name || !email || !purpose || !totalAmount || !category) {
-    showToast('Please fill in all required fields.', 'error');
+  const formProvider = document.getElementById('formProvider').value;
+  const formRideId = document.getElementById('formRideId').value.trim();
+  const formRiderName = document.getElementById('formRiderName').value.trim();
+  const formDriverName = document.getElementById('formDriverName').value.trim();
+  const formVehicleNumber = document.getElementById('formVehicleNumber').value.trim();
+  const formPickup = document.getElementById('formPickup').value.trim();
+  const formDrop = document.getElementById('formDrop').value.trim();
+  const formDate = document.getElementById('formDate').value;
+  const formAmount = parseFloat(document.getElementById('formAmount').value);
+  const formCurrency = document.getElementById('formCurrency').value;
+  const formPaymentMethod = document.getElementById('formPaymentMethod').value;
+  const formPurpose = document.getElementById('formPurpose').value.trim();
+
+  if (!formAmount) {
+    showToast('Please fill in the total amount.', 'error');
     return;
   }
 
@@ -260,23 +304,28 @@ async function submitReimbursement() {
   try {
     // Upload image to Firebase Storage
     const timestamp = Date.now();
-    const ext = currentFile.name.split('.').pop();
     const storageRef = ref(storage, `bills/${timestamp}_${currentFile.name}`);
     await uploadBytes(storageRef, currentFile);
     const imageUrl = await getDownloadURL(storageRef);
 
     // Save to Firestore
     const docData = {
-      submittedBy: name,
-      email: email,
-      purpose: purpose,
-      companyName: companyName,
-      date: billDate,
-      totalAmount: totalAmount,
-      currency: currency,
-      taxAmount: taxAmount,
-      lineItems: extractedData?.lineItems || [],
-      category: category,
+      submittedBy: currentUser.displayName,
+      email: currentUser.email,
+      photoURL: currentUser.photoURL,
+      provider: formProvider,
+      rideId: formRideId,
+      riderName: formRiderName,
+      driverName: formDriverName,
+      vehicleNumber: formVehicleNumber,
+      pickup: formPickup,
+      drop: formDrop,
+      date: formDate,
+      totalAmount: formAmount,
+      currency: formCurrency,
+      paymentMethod: formPaymentMethod,
+      purpose: formPurpose,
+      category: 'travel',
       imageUrl: imageUrl,
       submittedAt: serverTimestamp(),
       status: 'pending'
@@ -288,9 +337,6 @@ async function submitReimbursement() {
 
     // Reset form
     resetForm();
-
-    // Refresh table
-    await loadRecentSubmissions();
 
   } catch (err) {
     console.error('Submit error:', err);
@@ -306,9 +352,7 @@ function resetForm() {
   reimbursementForm.reset();
   currentFile = null;
   currentBase64 = null;
-  extractedData = null;
   previewContainer.classList.remove('visible');
-  extractedCard.classList.remove('visible');
   uploadZone.classList.remove('has-file');
   scanBtn.disabled = true;
   submitBtn.disabled = true;
@@ -329,10 +373,10 @@ async function loadRecentSubmissions() {
 
     if (snapshot.empty) {
       submissionsBody.innerHTML = `
-        <tr><td colspan="6">
+        <tr><td colspan="7">
           <div class="empty-state">
             <span class="empty-icon">📭</span>
-            <p>No submissions yet. Upload a bill to get started!</p>
+            <p>No submissions yet. Upload a cab receipt to get started!</p>
           </div>
         </td></tr>`;
       return;
@@ -355,20 +399,28 @@ async function loadRecentSubmissions() {
         rejected: 'badge-rejected'
       }[d.status] || 'badge-pending';
 
-      const categoryLabels = {
-        food: 'Food & Dining',
-        travel: 'Travel',
-        accommodation: 'Accommodation',
-        office: 'Office Supplies',
-        other: 'Other'
-      };
+      // Build route string, truncated
+      const pickup = d.pickup || '';
+      const drop = d.drop || '';
+      let route = '--';
+      if (pickup || drop) {
+        const truncate = (s, len) => s.length > len ? s.substring(0, len) + '...' : s;
+        route = `${truncate(pickup, 20)} → ${truncate(drop, 20)}`;
+      }
+
+      // Submitted by with avatar
+      let submittedByHtml = escapeHtml(d.submittedBy || '--');
+      if (d.photoURL) {
+        submittedByHtml = `<span style="display:inline-flex;align-items:center;gap:6px;"><img src="${escapeHtml(d.photoURL)}" style="width:22px;height:22px;border-radius:50%;vertical-align:middle;"> ${submittedByHtml}</span>`;
+      }
 
       tr.innerHTML = `
         <td>${escapeHtml(submittedAt)}</td>
-        <td>${escapeHtml(d.submittedBy || '--')}</td>
-        <td>${escapeHtml(d.companyName || '--')}</td>
+        <td>${submittedByHtml}</td>
+        <td>${escapeHtml(d.provider || '--')}</td>
+        <td>${escapeHtml(d.rideId || '--')}</td>
+        <td>${escapeHtml(route)}</td>
         <td><strong>${escapeHtml(d.currency || '')} ${d.totalAmount != null ? Number(d.totalAmount).toFixed(2) : '--'}</strong></td>
-        <td>${escapeHtml(categoryLabels[d.category] || d.category || '--')}</td>
         <td><span class="badge ${statusClass}">${escapeHtml(d.status || 'pending')}</span></td>
       `;
       submissionsBody.appendChild(tr);
@@ -388,9 +440,9 @@ function escapeHtml(str) {
 }
 
 // ---- Init ----
-// Enable submit button when form has a scanned bill or user manually fills fields
+// Enable submit button when amount changes and user is signed in
 document.getElementById('formAmount').addEventListener('input', () => {
-  if (document.getElementById('formAmount').value) {
+  if (document.getElementById('formAmount').value && currentUser) {
     submitBtn.disabled = false;
   }
 });
