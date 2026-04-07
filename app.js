@@ -136,14 +136,16 @@ signOutLink.addEventListener('click', async () => {
 
 // ---- Profile Dropdown ----
 const profileDropdown = document.getElementById('profileDropdown');
-if (userAvatar && profileDropdown) {
+if (userAvatar) {
   userAvatar.addEventListener('click', (e) => {
     e.stopPropagation();
-    profileDropdown.classList.toggle('open');
+    if (!profileDropdown) return;
+    const isOpen = profileDropdown.style.display === 'block';
+    profileDropdown.style.display = isOpen ? 'none' : 'block';
   });
-  document.addEventListener('click', () => {
-    profileDropdown.classList.remove('open');
-  });
+}
+if (profileDropdown) {
+  document.addEventListener('click', () => { profileDropdown.style.display = 'none'; });
   profileDropdown.addEventListener('click', (e) => e.stopPropagation());
 }
 
