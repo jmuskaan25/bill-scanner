@@ -211,15 +211,15 @@ body {
 
 .profile-dropdown {
   display: none;
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
+  position: fixed;
+  top: clamp(52px, 8vw, 64px);
+  right: clamp(8px, 2vw, 24px);
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.04);
-  min-width: 240px;
-  z-index: 200;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.04);
+  width: min(280px, calc(100vw - 24px));
+  z-index: 9998;
   animation: dropIn 0.15s ease;
 }
 
