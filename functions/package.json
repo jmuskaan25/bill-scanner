@@ -1,0 +1,10 @@
+{
+  "name": "bill-scanner-functions",
+  "version": "1.0.0",
+  "engines": { "node": "20" },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-functions": "^6.0.0",
+    "@anthropic-ai/sdk": "^0.39.0"
+  }
+}

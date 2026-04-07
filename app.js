@@ -5,32 +5,20 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import { getFirestore, collection, addDoc, getDocs, orderBy, limit, query, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
-import { getRemoteConfig, fetchAndActivate, getValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-remote-config.js';
+import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js';
 
 // ---- Firebase Init ----
 let db = null;
 let storage = null;
-let remoteConfig = null;
-let claudeApiKey = null;
+let functions = null;
 
 try {
   const app = initializeApp(CONFIG.FIREBASE);
   db = getFirestore(app);
   storage = getStorage(app);
-  remoteConfig = getRemoteConfig(app);
-  remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour cache
+  functions = getFunctions(app);
 } catch (e) {
   console.warn('Firebase not configured yet. Submissions will not be saved.', e);
-}
-
-async function loadRemoteConfig() {
-  if (!remoteConfig) return;
-  try {
-    await fetchAndActivate(remoteConfig);
-    claudeApiKey = getValue(remoteConfig, 'CLAUDE_API_KEY').asString();
-  } catch (e) {
-    console.warn('Failed to fetch Remote Config:', e);
-  }
 }
 
 // ---- State ----
@@ -138,8 +126,8 @@ scanBtn.addEventListener('click', scanBill);
 async function scanBill() {
   if (!currentFile || !currentBase64) return;
 
-  if (!claudeApiKey) {
-    showToast('Claude API key not loaded. Check Firebase Remote Config.', 'error');
+  if (!functions) {
+    showToast('Firebase not initialized.', 'error');
     return;
   }
 
@@ -149,58 +137,12 @@ async function scanBill() {
   scanLoading.classList.add('visible');
 
   try {
-    const mediaType = currentFile.type;
-    const contentBlocks = [];
-
-    if (mediaType === 'application/pdf') {
-      contentBlocks.push({
-        type: 'document',
-        source: { type: 'base64', media_type: 'application/pdf', data: currentBase64 }
-      });
-    } else {
-      contentBlocks.push({
-        type: 'image',
-        source: { type: 'base64', media_type: mediaType, data: currentBase64 }
-      });
-    }
-
-    contentBlocks.push({
-      type: 'text',
-      text: 'Extract bill/receipt information and return JSON with these fields: companyName (string), date (YYYY-MM-DD format), totalAmount (number), currency (3-letter code like USD, EUR, INR), taxAmount (number or null), lineItems (array of {description, amount}), category (one of: food, travel, accommodation, office, other). Return ONLY valid JSON, no markdown code fences, no explanation.'
-    });
-
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': claudeApiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
-        messages: [{ role: 'user', content: contentBlocks }]
-      })
-    });
-
-    if (!response.ok) {
-      const errBody = await response.text();
-      throw new Error(`API error ${response.status}: ${errBody}`);
-    }
-
-    const result = await response.json();
-    const text = result.content[0].text.trim();
-
-    let jsonStr = text;
-    const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (fenceMatch) jsonStr = fenceMatch[1].trim();
-
-    extractedData = JSON.parse(jsonStr);
+    const scanBillFn = httpsCallable(functions, 'scanBill');
+    const result = await scanBillFn({ imageBase64: currentBase64, mediaType: currentFile.type });
+    extractedData = result.data;
     displayExtractedData(extractedData);
     populateForm(extractedData);
     showToast('Bill scanned successfully!', 'success');
-
   } catch (err) {
     console.error('Scan error:', err);
     showToast(`Scan failed: ${err.message}`, 'error');
@@ -210,6 +152,7 @@ async function scanBill() {
     scanLoading.classList.remove('visible');
   }
 }
+
 
 function displayExtractedData(data) {
   document.getElementById('extractedCompany').textContent = data.companyName || '--';
@@ -450,6 +393,5 @@ document.getElementById('formAmount').addEventListener('input', () => {
   }
 });
 
-// Load submissions and remote config on page load
-loadRemoteConfig();
+// Load submissions on page load
 loadRecentSubmissions();
