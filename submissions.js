@@ -4,7 +4,7 @@
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import { getFirestore, collection, getDocs, orderBy, limit, query } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { getAuth, signInWithPopup, onAuthStateChanged, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
 // ---- Firebase Init ----
 let db = null;
@@ -24,23 +24,32 @@ const toastContainer = document.getElementById('toastContainer');
 const signInWall = document.getElementById('signInWall');
 const wallSignInBtn = document.getElementById('wallSignInBtn');
 
-// Hide wall immediately if we know user is already signed in
-if (sessionStorage.getItem('via_authed') === '1' && signInWall) {
+// Hide wall immediately if already authed or mid-sign-in
+if ((sessionStorage.getItem('via_authed') === '1' || sessionStorage.getItem('via_signing_in') === '1') && signInWall) {
   signInWall.style.display = 'none';
 }
 
 // ---- Auth ----
 if (auth) {
+  getRedirectResult(auth)
+    .then(result => { if (result?.user) onSignedIn(result.user); })
+    .catch(() => { sessionStorage.removeItem('via_signing_in'); });
+
   onAuthStateChanged(auth, (user) => {
-    if (user) {
-      sessionStorage.setItem('via_authed', '1');
-      signInWall.style.display = 'none';
-      loadRecentSubmissions();
-    } else {
+    if (user) onSignedIn(user);
+    else {
       sessionStorage.removeItem('via_authed');
+      sessionStorage.removeItem('via_signing_in');
       signInWall.style.display = 'flex';
     }
   });
+}
+
+function onSignedIn(user) {
+  sessionStorage.setItem('via_authed', '1');
+  sessionStorage.removeItem('via_signing_in');
+  signInWall.style.display = 'none';
+  loadRecentSubmissions();
 }
 
 // Wall sign-in button
@@ -52,7 +61,16 @@ wallSignInBtn.addEventListener('click', async () => {
   try {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    await signInWithPopup(auth, provider);
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (popupErr) {
+      if (popupErr.code === 'auth/popup-blocked' || popupErr.code === 'auth/popup-cancelled') {
+        sessionStorage.setItem('via_signing_in', '1');
+        await signInWithRedirect(auth, provider);
+      } else {
+        throw popupErr;
+      }
+    }
   } catch (err) {
     if (err.code !== 'auth/popup-closed-by-user') {
       console.error('Sign-in error:', err);
