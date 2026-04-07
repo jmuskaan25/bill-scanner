@@ -49,7 +49,7 @@ const toastContainer = document.getElementById('toastContainer');
 // Auth DOM refs
 const signedOutView = document.getElementById('signedOutView');
 const signedInView = document.getElementById('signedInView');
-const googleSignInBtn = document.getElementById('googleSignInBtn');
+const googleSignInBtn = document.getElementById('googleSignInBtn'); // may not exist if sign-in is wall-only
 const userAvatar = document.getElementById('userAvatar');
 const userName = document.getElementById('userName');
 const userEmail = document.getElementById('userEmail');
@@ -67,11 +67,11 @@ if (auth) {
       // Hide the sign-in wall
       signInWall.style.display = 'none';
 
-      signedOutView.style.display = 'none';
-      signedInView.style.display = 'block';
+      if (signedOutView) signedOutView.style.display = 'none';
+      signedInView.style.display = 'flex';
       userAvatar.src = user.photoURL || '';
       userName.textContent = user.displayName || 'User';
-      userEmail.textContent = user.email || '';
+      if (userEmail) userEmail.textContent = user.email || '';
       // Enable submit if amount is filled
       if (document.getElementById('formAmount').value) {
         submitBtn.disabled = false;
@@ -80,7 +80,7 @@ if (auth) {
       // Show the sign-in wall
       signInWall.style.display = 'flex';
 
-      signedOutView.style.display = 'block';
+      if (signedOutView) signedOutView.style.display = 'block';
       signedInView.style.display = 'none';
       submitBtn.disabled = true;
     }
@@ -103,7 +103,7 @@ wallSignInBtn.addEventListener('click', async () => {
   }
 });
 
-googleSignInBtn.addEventListener('click', async () => {
+if (googleSignInBtn) googleSignInBtn.addEventListener('click', async () => {
   if (!auth) {
     showToast('Firebase not initialized.', 'error');
     return;

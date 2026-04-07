@@ -3,21 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Submissions - Cab Bill Scanner</title>
+  <title>Submissions - VIA Reimbursements</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚕</text></svg>">
 </head>
 <body>
 
-  <!-- Sign-In Wall -->
-  <div id="signInWall" class="signin-wall">
+  <!-- Sign-In Wall (inline styles ensure it shows before CSS loads) -->
+  <div id="signInWall" class="signin-wall" style="display:flex; position:fixed; inset:0; z-index:9999; background:#f9fafb; align-items:center; justify-content:center;">
     <div class="signin-card">
-      <span style="font-size:48px;">🧾</span>
-      <h1>Cab Reimbursements</h1>
-      <p>Sign in with your Google account to submit and track your cab expenses.</p>
-      <button class="google-signin-btn" id="wallSignInBtn">
-        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20"> Sign in with Google
+      <span class="signin-logo">🚕</span>
+      <h1>VIA Reimbursements</h1>
+      <p class="subtitle">Sign in to submit and track your cab expenses</p>
+      <button class="google-btn" id="wallSignInBtn">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" alt="Google">
+        Continue with Google
       </button>
+      <p class="signin-note">Only @via.dev accounts</p>
     </div>
   </div>
 
@@ -25,11 +27,12 @@
   <header class="header">
     <div class="header-content">
       <a href="index.html" class="btn-back">← Back</a>
-      <span class="header-icon">🚕</span>
+      <span class="header-logo">🚕</span>
       <div>
-        <h1>Submissions</h1>
-        <p>View all submitted cab reimbursements</p>
+        <div class="header-title">Submissions</div>
+        <div class="header-subtitle">All submitted cab reimbursements</div>
       </div>
+      <div class="header-actions"></div>
     </div>
   </header>
 
