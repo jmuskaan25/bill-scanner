@@ -32,26 +32,24 @@
       </div>
       <div class="header-actions">
         <a href="submissions.html" class="btn-submissions">📊 View Submissions</a>
-        <div id="signedInView" style="display:none;">
+        <div id="signedInView" style="display:none;" class="profile-menu-wrapper">
           <img id="userAvatar" src="" alt="" class="profile-avatar">
+          <div id="profileDropdown" class="profile-dropdown" style="display:none;">
+            <div class="profile-dropdown-header">
+              <img id="userAvatarLarge" src="" alt="" class="profile-avatar-large">
+              <div>
+                <div class="profile-dropdown-name" id="userName"></div>
+                <div class="profile-dropdown-email" id="userEmail"></div>
+              </div>
+            </div>
+            <hr class="profile-dropdown-divider">
+            <button class="profile-dropdown-signout" id="signOutLink">Sign out</button>
+          </div>
         </div>
         <div id="signedOutView" style="display:none;"></div>
       </div>
     </div>
   </header>
-
-  <!-- Profile dropdown (outside header to avoid overflow clipping) -->
-  <div id="profileDropdown" class="profile-dropdown" style="display:none;">
-    <div class="profile-dropdown-header">
-      <img id="userAvatarLarge" src="" alt="" class="profile-avatar-large">
-      <div>
-        <div class="profile-dropdown-name" id="userName"></div>
-        <div class="profile-dropdown-email" id="userEmail"></div>
-      </div>
-    </div>
-    <hr class="profile-dropdown-divider">
-    <button class="profile-dropdown-signout" id="signOutLink">Sign out</button>
-  </div>
 
   <div class="container">
     <!-- Step 1: Upload zone (full width) -->

@@ -106,6 +106,7 @@ body {
   background: white;
   border-bottom: 1px solid #e5e7eb;
   padding: 0;
+  overflow: visible;
   position: sticky;
   top: 0;
   z-index: 100;
@@ -193,6 +194,8 @@ body {
 /* Profile menu */
 .profile-menu-wrapper {
   position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .profile-avatar {
@@ -211,9 +214,9 @@ body {
 
 .profile-dropdown {
   display: none;
-  position: fixed;
-  top: clamp(52px, 8vw, 64px);
-  right: clamp(8px, 2vw, 24px);
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
