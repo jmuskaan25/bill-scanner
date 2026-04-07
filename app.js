@@ -6,7 +6,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getFirestore, collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js';
-import { getAuth, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { getAuth, signInWithPopup, signOut, onAuthStateChanged, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
 // ---- Firebase Init ----
 let db = null;
@@ -59,59 +59,31 @@ const signOutLink = document.getElementById('signOutLink');
 const signInWall = document.getElementById('signInWall');
 const wallSignInBtn = document.getElementById('wallSignInBtn');
 
-// ---- Auth state helpers ----
-const signingInOverlay = document.getElementById('signingInOverlay');
-let pendingRedirect = localStorage.getItem('via_signing_in') === '1';
-const isAuthed = localStorage.getItem('via_authed') === '1';
-
-// Immediately hide wall if authed or mid-redirect
-if (signInWall && (isAuthed || pendingRedirect)) signInWall.style.display = 'none';
-if (pendingRedirect && signingInOverlay) signingInOverlay.style.display = 'flex';
-
-function showUser(user) {
-  currentUser = user;
-  pendingRedirect = false;
-  localStorage.setItem('via_authed', '1');
-  localStorage.removeItem('via_signing_in');
-  if (signInWall) signInWall.style.display = 'none';
-  if (signingInOverlay) signingInOverlay.style.display = 'none';
-  if (signedOutView) signedOutView.style.display = 'none';
-  signedInView.style.display = 'flex';
-  userAvatar.src = user.photoURL || '';
-  userName.textContent = user.displayName || 'User';
-  if (userEmail) userEmail.textContent = user.email || '';
+// ---- Auth ----
+// Hide wall immediately if we know user was recently signed in
+if (sessionStorage.getItem('via_authed') === '1' && signInWall) {
+  signInWall.style.display = 'none';
 }
-
-function showWall() {
-  pendingRedirect = false;
-  localStorage.removeItem('via_authed');
-  localStorage.removeItem('via_signing_in');
-  if (signingInOverlay) signingInOverlay.style.display = 'none';
-  if (signInWall) signInWall.style.display = 'flex';
-  if (signedOutView) signedOutView.style.display = 'block';
-  signedInView.style.display = 'none';
-}
+// Clean up any stale redirect flags
+localStorage.removeItem('via_signing_in');
 
 if (auth) {
-  // Handle redirect result first
-  getRedirectResult(auth)
-    .then(result => {
-      pendingRedirect = false;
-      localStorage.removeItem('via_signing_in');
-      if (result?.user) {
-        showUser(result.user);
-      } else if (!auth.currentUser) {
-        showWall();
-      }
-    })
-    .catch(err => {
-      console.error('Redirect error:', err);
-      showWall();
-    });
-
   onAuthStateChanged(auth, (user) => {
-    if (user) showUser(user);
-    else if (!pendingRedirect) showWall();
+    currentUser = user;
+    if (user) {
+      sessionStorage.setItem('via_authed', '1');
+      if (signInWall) signInWall.style.display = 'none';
+      if (signedOutView) signedOutView.style.display = 'none';
+      signedInView.style.display = 'flex';
+      userAvatar.src = user.photoURL || '';
+      userName.textContent = user.displayName || 'User';
+      if (userEmail) userEmail.textContent = user.email || '';
+    } else {
+      sessionStorage.removeItem('via_authed');
+      if (signInWall) signInWall.style.display = 'flex';
+      if (signedOutView) signedOutView.style.display = 'block';
+      signedInView.style.display = 'none';
+    }
   });
 }
 
@@ -124,8 +96,7 @@ wallSignInBtn.addEventListener('click', async () => {
   try {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    localStorage.setItem('via_signing_in', '1');
-    await signInWithRedirect(auth, provider);
+    await signInWithPopup(auth, provider);
   } catch (err) {
     if (err.code !== 'auth/popup-closed-by-user') {
       console.error('Sign-in error:', err);
@@ -142,8 +113,7 @@ if (googleSignInBtn) googleSignInBtn.addEventListener('click', async () => {
   try {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    localStorage.setItem('via_signing_in', '1');
-    await signInWithRedirect(auth, provider);
+    await signInWithPopup(auth, provider);
   } catch (err) {
     if (err.code !== 'auth/popup-closed-by-user') {
       console.error('Sign-in error:', err);
