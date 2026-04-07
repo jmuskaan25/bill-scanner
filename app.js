@@ -6,6 +6,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getFirestore, collection, addDoc, getDocs, orderBy, limit, query, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js';
+import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
 // ---- Firebase Init ----
 let db = null;
@@ -17,6 +18,7 @@ try {
   db = getFirestore(app);
   storage = getStorage(app);
   functions = getFunctions(app);
+  signInAnonymously(getAuth(app)).catch(e => console.warn('Anon sign-in failed:', e));
 } catch (e) {
   console.warn('Firebase not configured yet. Submissions will not be saved.', e);
 }
