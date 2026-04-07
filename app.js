@@ -5,7 +5,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import { getFirestore, collection, addDoc, getDocs, orderBy, limit, query, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
-
 // ---- Firebase Init ----
 let db = null;
 let storage = null;
@@ -140,20 +139,12 @@ async function scanBill() {
     if (mediaType === 'application/pdf') {
       contentBlocks.push({
         type: 'document',
-        source: {
-          type: 'base64',
-          media_type: 'application/pdf',
-          data: currentBase64
-        }
+        source: { type: 'base64', media_type: 'application/pdf', data: currentBase64 }
       });
     } else {
       contentBlocks.push({
         type: 'image',
-        source: {
-          type: 'base64',
-          media_type: mediaType,
-          data: currentBase64
-        }
+        source: { type: 'base64', media_type: mediaType, data: currentBase64 }
       });
     }
 
@@ -173,10 +164,7 @@ async function scanBill() {
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
-        messages: [{
-          role: 'user',
-          content: contentBlocks
-        }]
+        messages: [{ role: 'user', content: contentBlocks }]
       })
     });
 
@@ -188,12 +176,9 @@ async function scanBill() {
     const result = await response.json();
     const text = result.content[0].text.trim();
 
-    // Parse JSON (handle possible markdown code fences)
     let jsonStr = text;
     const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (fenceMatch) {
-      jsonStr = fenceMatch[1].trim();
-    }
+    if (fenceMatch) jsonStr = fenceMatch[1].trim();
 
     extractedData = JSON.parse(jsonStr);
     displayExtractedData(extractedData);
