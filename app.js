@@ -95,11 +95,21 @@ wallSignInBtn.addEventListener('click', async () => {
     showToast('Firebase not initialized.', 'error');
     return;
   }
+  // Show loading state on the button immediately
+  wallSignInBtn.disabled = true;
+  wallSignInBtn.textContent = 'Signing in...';
   try {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    await signInWithPopup(auth, provider);
+    const result = await signInWithPopup(auth, provider);
+    // Hide wall immediately — don't wait for onAuthStateChanged
+    if (result.user) {
+      sessionStorage.setItem('via_authed', '1');
+      if (signInWall) signInWall.style.display = 'none';
+    }
   } catch (err) {
+    wallSignInBtn.disabled = false;
+    wallSignInBtn.innerHTML = '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" alt="Google"> Continue with Google';
     if (err.code !== 'auth/popup-closed-by-user') {
       console.error('Sign-in error:', err);
       showToast(`Sign-in failed: ${err.message}`, 'error');
