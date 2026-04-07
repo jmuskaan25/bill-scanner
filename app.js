@@ -61,20 +61,16 @@ const wallSignInBtn = document.getElementById('wallSignInBtn');
 
 // ---- Auth state helpers ----
 const signingInOverlay = document.getElementById('signingInOverlay');
-const isSigningIn = localStorage.getItem('via_signing_in') === '1';
+let pendingRedirect = localStorage.getItem('via_signing_in') === '1';
 const isAuthed = localStorage.getItem('via_authed') === '1';
 
-// Immediately hide wall if we know user is authed or mid-redirect
-if (signInWall) {
-  if (isAuthed || isSigningIn) signInWall.style.display = 'none';
-}
-// Show loading overlay if mid-redirect
-if (isSigningIn && signingInOverlay) {
-  signingInOverlay.style.display = 'flex';
-}
+// Immediately hide wall if authed or mid-redirect
+if (signInWall && (isAuthed || pendingRedirect)) signInWall.style.display = 'none';
+if (pendingRedirect && signingInOverlay) signingInOverlay.style.display = 'flex';
 
 function showUser(user) {
   currentUser = user;
+  pendingRedirect = false;
   localStorage.setItem('via_authed', '1');
   localStorage.removeItem('via_signing_in');
   if (signInWall) signInWall.style.display = 'none';
@@ -87,6 +83,7 @@ function showUser(user) {
 }
 
 function showWall() {
+  pendingRedirect = false;
   localStorage.removeItem('via_authed');
   localStorage.removeItem('via_signing_in');
   if (signingInOverlay) signingInOverlay.style.display = 'none';
@@ -96,21 +93,25 @@ function showWall() {
 }
 
 if (auth) {
-  // Resolve redirect result — this runs before onAuthStateChanged on redirect return
+  // Handle redirect result first
   getRedirectResult(auth)
     .then(result => {
-      if (result?.user) showUser(result.user);
-      // If no result, onAuthStateChanged handles it
+      pendingRedirect = false;
+      localStorage.removeItem('via_signing_in');
+      if (result?.user) {
+        showUser(result.user);
+      } else if (!auth.currentUser) {
+        showWall();
+      }
     })
     .catch(err => {
       console.error('Redirect error:', err);
       showWall();
     });
 
-  // onAuthStateChanged fires after getRedirectResult resolves
   onAuthStateChanged(auth, (user) => {
     if (user) showUser(user);
-    else if (!isSigningIn) showWall(); // Only show wall if not mid-redirect
+    else if (!pendingRedirect) showWall();
   });
 }
 

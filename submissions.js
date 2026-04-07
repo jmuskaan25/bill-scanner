@@ -25,16 +25,17 @@ const signInWall = document.getElementById('signInWall');
 const wallSignInBtn = document.getElementById('wallSignInBtn');
 
 const signingInOverlay = document.getElementById('signingInOverlay');
-const isSigningIn = localStorage.getItem('via_signing_in') === '1';
+let pendingRedirect = localStorage.getItem('via_signing_in') === '1';
 const isAuthed = localStorage.getItem('via_authed') === '1';
 
-if (signInWall && (isAuthed || isSigningIn)) signInWall.style.display = 'none';
-if (isSigningIn && signingInOverlay) signingInOverlay.style.display = 'flex';
+if (signInWall && (isAuthed || pendingRedirect)) signInWall.style.display = 'none';
+if (pendingRedirect && signingInOverlay) signingInOverlay.style.display = 'flex';
 
 let currentUser = null;
 
 function onSignedIn(user) {
   currentUser = user;
+  pendingRedirect = false;
   localStorage.setItem('via_authed', '1');
   localStorage.removeItem('via_signing_in');
   if (signInWall) signInWall.style.display = 'none';
@@ -43,6 +44,7 @@ function onSignedIn(user) {
 }
 
 function showWall() {
+  pendingRedirect = false;
   localStorage.removeItem('via_authed');
   localStorage.removeItem('via_signing_in');
   if (signingInOverlay) signingInOverlay.style.display = 'none';
@@ -52,12 +54,17 @@ function showWall() {
 // ---- Auth ----
 if (auth) {
   getRedirectResult(auth)
-    .then(result => { if (result?.user) onSignedIn(result.user); })
+    .then(result => {
+      pendingRedirect = false;
+      localStorage.removeItem('via_signing_in');
+      if (result?.user) onSignedIn(result.user);
+      else if (!auth.currentUser) showWall();
+    })
     .catch(err => { console.error(err); showWall(); });
 
   onAuthStateChanged(auth, (user) => {
     if (user) onSignedIn(user);
-    else if (!isSigningIn) showWall();
+    else if (!pendingRedirect) showWall();
   });
 }
 
