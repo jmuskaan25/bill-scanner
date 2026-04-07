@@ -3,7 +3,7 @@
 // ============================================
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-import { getFirestore, collection, getDocs, orderBy, limit, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { getFirestore, collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { getAuth, signInWithRedirect, getRedirectResult, onAuthStateChanged, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
 // ---- Firebase Init ----
@@ -93,20 +93,19 @@ function showToast(message, type = 'info') {
 async function loadRecentSubmissions() {
   if (!db || !currentUser) return;
 
-  submissionsBody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:#9ca3af;">Loading...</td></tr>`;
+  submissionsBody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:32px;color:#9ca3af;">Loading...</td></tr>`;
 
   try {
+    // Filter by current user's email — no orderBy so no index required
     const q = query(
       collection(db, 'reimbursements'),
-      where('email', '==', currentUser.email),
-      orderBy('submittedAt', 'desc'),
-      limit(50)
+      where('email', '==', currentUser.email)
     );
     const snapshot = await getDocs(q);
 
     if (snapshot.empty) {
       submissionsBody.innerHTML = `
-        <tr><td colspan="8">
+        <tr><td colspan="7">
           <div class="empty-state">
             <span class="empty-icon">📭</span>
             <p>No submissions yet. Upload a cab receipt to get started!</p>
@@ -115,30 +114,36 @@ async function loadRecentSubmissions() {
       return;
     }
 
+    // Sort client-side: newest first
+    const docs = [];
+    snapshot.forEach(doc => docs.push(doc.data()));
+    docs.sort((a, b) => {
+      const ta = a.submittedAt?.toDate?.() || new Date(0);
+      const tb = b.submittedAt?.toDate?.() || new Date(0);
+      return tb - ta;
+    });
+
     submissionsBody.innerHTML = '';
-    snapshot.forEach(doc => {
-      const d = doc.data();
+    docs.forEach(d => {
       const tr = document.createElement('tr');
 
       const submittedAt = d.submittedAt?.toDate
         ? d.submittedAt.toDate().toLocaleDateString('en-IN', {
-            day: 'numeric', month: 'short', year: 'numeric',
-            hour: '2-digit', minute: '2-digit'
+            day: 'numeric', month: 'short', year: 'numeric'
           })
         : '--';
 
-      // Ride date + time from the bill
-      const rideDate = d.date || '--';
-
-      const statusClass = {
-        pending: 'badge-pending',
-        approved: 'badge-approved',
-        rejected: 'badge-rejected'
-      }[d.status] || 'badge-pending';
+      // Ride date from the bill (d.date is YYYY-MM-DD)
+      let rideDate = '--';
+      if (d.date && /^\d{4}-\d{2}-\d{2}/.test(d.date)) {
+        rideDate = new Date(d.date).toLocaleDateString('en-IN', {
+          day: 'numeric', month: 'short', year: 'numeric'
+        });
+      }
 
       let submittedByHtml = escapeHtml(d.submittedBy || '--');
       if (d.photoURL) {
-        submittedByHtml = `<span style="display:inline-flex;align-items:center;gap:6px;"><img src="${escapeHtml(d.photoURL)}" style="width:22px;height:22px;border-radius:50%;vertical-align:middle;">${submittedByHtml}</span>`;
+        submittedByHtml = `<span style="display:inline-flex;align-items:center;gap:6px;"><img src="${escapeHtml(d.photoURL)}" style="width:22px;height:22px;border-radius:50%;vertical-align:middle;">${escapeHtml(d.submittedBy || '--')}</span>`;
       }
 
       const currency = d.currency || 'INR';
@@ -150,19 +155,16 @@ async function loadRecentSubmissions() {
         <td>${submittedByHtml}</td>
         <td>${escapeHtml(d.provider || '--')}</td>
         <td style="white-space:nowrap;">${escapeHtml(rideDate)}</td>
-        <td style="max-width:180px;">${escapeHtml(d.pickup || '--')}</td>
-        <td style="max-width:180px;">${escapeHtml(d.drop || '--')}</td>
+        <td>${escapeHtml(d.pickup || '--')}</td>
+        <td>${escapeHtml(d.drop || '--')}</td>
         <td><strong>${escapeHtml(amount)}</strong></td>
-        <td><span class="badge ${statusClass}">${escapeHtml(d.status || 'pending')}</span></td>
       `;
       submissionsBody.appendChild(tr);
     });
 
   } catch (err) {
     console.error('Error loading submissions:', err);
-    if (err.code === 'failed-precondition') {
-      submissionsBody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:#9ca3af;">Setting up index, please try again in a moment.</td></tr>`;
-    }
+    submissionsBody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:32px;color:#ef4444;">Failed to load. Please refresh.</td></tr>`;
   }
 }
 
