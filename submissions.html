@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Submissions - Cab Bill Scanner</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚕</text></svg>">
+</head>
+<body>
+
+  <!-- Sign-In Wall -->
+  <div id="signInWall" class="signin-wall">
+    <div class="signin-card">
+      <span style="font-size:48px;">🧾</span>
+      <h1>Cab Reimbursements</h1>
+      <p>Sign in with your Google account to submit and track your cab expenses.</p>
+      <button class="google-signin-btn" id="wallSignInBtn">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20"> Sign in with Google
+      </button>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-content">
+      <a href="index.html" class="btn-back">← Back</a>
+      <span class="header-icon">🚕</span>
+      <div>
+        <h1>Submissions</h1>
+        <p>View all submitted cab reimbursements</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="container">
+    <div class="card">
+      <div class="card-header">
+        <span class="icon">📊</span>
+        <h2>Recent Submissions</h2>
+      </div>
+      <div class="card-body" style="padding: 0;">
+        <div class="submissions-table-wrapper">
+          <table class="submissions-table" id="submissionsTable">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Submitted By</th>
+                <th>Provider</th>
+                <th>Ride ID</th>
+                <th>Route</th>
+                <th>Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="submissionsBody">
+              <tr>
+                <td colspan="7">
+                  <div class="empty-state">
+                    <span class="empty-icon">📭</span>
+                    <p>No submissions yet. Upload a cab receipt to get started!</p>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="config.js"></script>
+  <script type="module" src="submissions.js"></script>
+
+</body>
+</html>

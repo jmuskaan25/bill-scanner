@@ -3,7 +3,7 @@
 // ============================================
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-import { getFirestore, collection, addDoc, getDocs, orderBy, limit, query, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { getFirestore, collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js';
 import { getAuth, signInWithPopup, signOut, onAuthStateChanged, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
@@ -45,7 +45,6 @@ const submitBtnText = document.getElementById('submitBtnText');
 const submitLoading = document.getElementById('submitLoading');
 const reimbursementForm = document.getElementById('reimbursementForm');
 const toastContainer = document.getElementById('toastContainer');
-const submissionsBody = document.getElementById('submissionsBody');
 
 // Auth DOM refs
 const signedOutView = document.getElementById('signedOutView');
@@ -56,11 +55,18 @@ const userName = document.getElementById('userName');
 const userEmail = document.getElementById('userEmail');
 const signOutLink = document.getElementById('signOutLink');
 
+// Sign-in wall refs
+const signInWall = document.getElementById('signInWall');
+const wallSignInBtn = document.getElementById('wallSignInBtn');
+
 // ---- Auth ----
 if (auth) {
   onAuthStateChanged(auth, (user) => {
     currentUser = user;
     if (user) {
+      // Hide the sign-in wall
+      signInWall.style.display = 'none';
+
       signedOutView.style.display = 'none';
       signedInView.style.display = 'block';
       userAvatar.src = user.photoURL || '';
@@ -71,12 +77,31 @@ if (auth) {
         submitBtn.disabled = false;
       }
     } else {
+      // Show the sign-in wall
+      signInWall.style.display = 'flex';
+
       signedOutView.style.display = 'block';
       signedInView.style.display = 'none';
       submitBtn.disabled = true;
     }
   });
 }
+
+// Wall sign-in button
+wallSignInBtn.addEventListener('click', async () => {
+  if (!auth) {
+    showToast('Firebase not initialized.', 'error');
+    return;
+  }
+  try {
+    await signInWithPopup(auth, new GoogleAuthProvider());
+  } catch (err) {
+    if (err.code !== 'auth/popup-closed-by-user') {
+      console.error('Sign-in error:', err);
+      showToast(`Sign-in failed: ${err.message}`, 'error');
+    }
+  }
+});
 
 googleSignInBtn.addEventListener('click', async () => {
   if (!auth) {
@@ -101,25 +126,6 @@ signOutLink.addEventListener('click', async () => {
   } catch (err) {
     console.error('Sign-out error:', err);
   }
-});
-
-// ---- Tab Switching ----
-document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    // Update active tab
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-
-    // Show/hide content
-    document.querySelectorAll('.tab-content').forEach(tc => tc.classList.add('hidden'));
-    const target = tab.getAttribute('data-tab');
-    document.getElementById(`tab-${target}`).classList.remove('hidden');
-
-    // Refresh submissions when switching to that tab
-    if (target === 'submissions') {
-      loadRecentSubmissions();
-    }
-  });
 });
 
 // ---- Toast Notifications ----
@@ -359,78 +365,6 @@ function resetForm() {
   fileInput.value = '';
 }
 
-// ---- Load Recent Submissions ----
-async function loadRecentSubmissions() {
-  if (!db) return;
-
-  try {
-    const q = query(
-      collection(db, 'reimbursements'),
-      orderBy('submittedAt', 'desc'),
-      limit(20)
-    );
-    const snapshot = await getDocs(q);
-
-    if (snapshot.empty) {
-      submissionsBody.innerHTML = `
-        <tr><td colspan="7">
-          <div class="empty-state">
-            <span class="empty-icon">📭</span>
-            <p>No submissions yet. Upload a cab receipt to get started!</p>
-          </div>
-        </td></tr>`;
-      return;
-    }
-
-    submissionsBody.innerHTML = '';
-    snapshot.forEach(doc => {
-      const d = doc.data();
-      const tr = document.createElement('tr');
-
-      const submittedAt = d.submittedAt?.toDate
-        ? d.submittedAt.toDate().toLocaleDateString('en-US', {
-            year: 'numeric', month: 'short', day: 'numeric'
-          })
-        : '--';
-
-      const statusClass = {
-        pending: 'badge-pending',
-        approved: 'badge-approved',
-        rejected: 'badge-rejected'
-      }[d.status] || 'badge-pending';
-
-      // Build route string, truncated
-      const pickup = d.pickup || '';
-      const drop = d.drop || '';
-      let route = '--';
-      if (pickup || drop) {
-        const truncate = (s, len) => s.length > len ? s.substring(0, len) + '...' : s;
-        route = `${truncate(pickup, 20)} → ${truncate(drop, 20)}`;
-      }
-
-      // Submitted by with avatar
-      let submittedByHtml = escapeHtml(d.submittedBy || '--');
-      if (d.photoURL) {
-        submittedByHtml = `<span style="display:inline-flex;align-items:center;gap:6px;"><img src="${escapeHtml(d.photoURL)}" style="width:22px;height:22px;border-radius:50%;vertical-align:middle;"> ${submittedByHtml}</span>`;
-      }
-
-      tr.innerHTML = `
-        <td>${escapeHtml(submittedAt)}</td>
-        <td>${submittedByHtml}</td>
-        <td>${escapeHtml(d.provider || '--')}</td>
-        <td>${escapeHtml(d.rideId || '--')}</td>
-        <td>${escapeHtml(route)}</td>
-        <td><strong>${escapeHtml(d.currency || '')} ${d.totalAmount != null ? Number(d.totalAmount).toFixed(2) : '--'}</strong></td>
-        <td><span class="badge ${statusClass}">${escapeHtml(d.status || 'pending')}</span></td>
-      `;
-      submissionsBody.appendChild(tr);
-    });
-
-  } catch (err) {
-    console.error('Error loading submissions:', err);
-  }
-}
-
 // ---- Utility ----
 function escapeHtml(str) {
   if (!str) return '';
@@ -446,6 +380,3 @@ document.getElementById('formAmount').addEventListener('input', () => {
     submitBtn.disabled = false;
   }
 });
-
-// Load submissions on page load
-loadRecentSubmissions();
