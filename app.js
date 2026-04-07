@@ -6,7 +6,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getFirestore, collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js';
-import { getAuth, signInWithPopup, signOut, onAuthStateChanged, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { getAuth, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
 // ---- Firebase Init ----
 let db = null;
@@ -64,6 +64,11 @@ if (sessionStorage.getItem('via_authed') === '1' && signInWall) {
   signInWall.style.display = 'none';
 }
 
+// Handle redirect result on page load
+if (auth) {
+  getRedirectResult(auth).catch(err => console.error('Redirect result error:', err));
+}
+
 // ---- Auth ----
 if (auth) {
   onAuthStateChanged(auth, (user) => {
@@ -100,7 +105,7 @@ wallSignInBtn.addEventListener('click', async () => {
   try {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    await signInWithPopup(auth, provider);
+    await signInWithRedirect(auth, provider);
   } catch (err) {
     if (err.code !== 'auth/popup-closed-by-user') {
       console.error('Sign-in error:', err);
@@ -117,7 +122,7 @@ if (googleSignInBtn) googleSignInBtn.addEventListener('click', async () => {
   try {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    await signInWithPopup(auth, provider);
+    await signInWithRedirect(auth, provider);
   } catch (err) {
     if (err.code !== 'auth/popup-closed-by-user') {
       console.error('Sign-in error:', err);

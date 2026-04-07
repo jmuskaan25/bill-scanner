@@ -711,51 +711,57 @@ label {
 
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
-  .main-grid {
-    grid-template-columns: 1fr;
-  }
+  .main-grid { grid-template-columns: 1fr; }
+  .form-row, .form-row-3 { grid-template-columns: 1fr; }
+  .container { padding: 16px; }
+  .header-content { padding: 0 16px; height: 56px; }
+  .header-title { font-size: 15px; }
+  .header-subtitle { display: none; }
+  .signin-card { padding: 36px 24px; }
+  .submissions-table { font-size: 13px; }
+  .submissions-table th, .submissions-table td { padding: 8px 10px; }
 
-  .form-row,
-  .form-row-3 {
-    grid-template-columns: 1fr;
-  }
+  /* Header: hide subtitle text on mobile, keep buttons readable */
+  .btn-submissions { padding: 8px 12px; font-size: 13px; }
+  .btn-back { padding: 8px 12px; font-size: 13px; }
 
-  .container {
-    padding: 16px;
-  }
+  /* Upload hero: full height feel on mobile */
+  .upload-hero { padding: 56px 24px; min-height: 220px; }
+  .upload-hero-icon { font-size: 44px; }
+  .upload-hero h2 { font-size: 20px; }
 
-  .header-content {
-    padding: 0 16px;
-  }
+  /* Confirm card: full width, no side margins */
+  .confirm-card { border-radius: 12px; }
+  .confirm-header { padding: 20px 20px 16px; }
+  .confirm-provider { font-size: 18px; }
+  .confirm-amount { font-size: 26px; }
+  .confirm-route { padding: 16px 20px; }
+  .confirm-details { grid-template-columns: 1fr 1fr; padding: 0 20px; }
+  .detail-item:nth-child(odd) { border-right: 1px solid #f3f4f6; }
+  .detail-item:nth-child(even) { border-right: none; margin-right: 0; padding-right: 0; }
+  .confirm-purpose { padding: 16px 20px; }
+  .edit-form { padding: 16px 20px; }
+  .confirm-actions { padding: 16px 20px; flex-direction: column; gap: 10px; }
+  .btn-confirm { width: 100%; padding: 14px; font-size: 16px; }
+  .btn-edit-toggle { width: 100%; text-align: center; padding: 12px; }
+  .btn-cancel { width: 100%; text-align: center; margin-left: 0; }
 
-  .signin-card {
-    padding: 36px 24px;
-  }
-
-  .submissions-table {
-    font-size: 13px;
-  }
-
-  .submissions-table th,
-  .submissions-table td {
-    padding: 8px 10px;
-  }
-
-  .btn-submissions,
-  .btn-back {
-    padding: 6px 12px;
-    font-size: 12px;
-  }
+  /* Success */
+  .success-section { padding: 48px 20px; }
+  .success-actions { flex-direction: column; align-items: stretch; }
+  .success-actions .btn-submissions, .success-actions .btn-new { text-align: center; width: 100%; justify-content: center; }
 }
 
 @media (max-width: 480px) {
-  .card-body {
-    padding: 16px;
-  }
-
-  .upload-zone {
-    padding: 24px 16px;
-  }
+  .container { padding: 12px; }
+  .header-logo { font-size: 22px; }
+  .header-title { font-size: 14px; }
+  .upload-hero { padding: 40px 20px; border-radius: 12px; }
+  .upload-hero h2 { font-size: 18px; }
+  .upload-hero p { font-size: 14px; }
+  .confirm-details { grid-template-columns: 1fr 1fr; }
+  /* Stack all detail items on very small screens */
+  .user-chip-name { display: none; }
 }
 
 /* ============================================
