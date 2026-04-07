@@ -5,16 +5,32 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import { getFirestore, collection, addDoc, getDocs, orderBy, limit, query, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
+import { getRemoteConfig, fetchAndActivate, getValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-remote-config.js';
+
 // ---- Firebase Init ----
 let db = null;
 let storage = null;
+let remoteConfig = null;
+let claudeApiKey = null;
 
 try {
   const app = initializeApp(CONFIG.FIREBASE);
   db = getFirestore(app);
   storage = getStorage(app);
+  remoteConfig = getRemoteConfig(app);
+  remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour cache
 } catch (e) {
   console.warn('Firebase not configured yet. Submissions will not be saved.', e);
+}
+
+async function loadRemoteConfig() {
+  if (!remoteConfig) return;
+  try {
+    await fetchAndActivate(remoteConfig);
+    claudeApiKey = getValue(remoteConfig, 'CLAUDE_API_KEY').asString();
+  } catch (e) {
+    console.warn('Failed to fetch Remote Config:', e);
+  }
 }
 
 // ---- State ----
@@ -122,8 +138,8 @@ scanBtn.addEventListener('click', scanBill);
 async function scanBill() {
   if (!currentFile || !currentBase64) return;
 
-  if (!CONFIG.CLAUDE_API_KEY || CONFIG.CLAUDE_API_KEY === 'YOUR_CLAUDE_API_KEY') {
-    showToast('Please set your Claude API key in config.js', 'error');
+  if (!claudeApiKey) {
+    showToast('Claude API key not loaded. Check Firebase Remote Config.', 'error');
     return;
   }
 
@@ -156,7 +172,7 @@ async function scanBill() {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'x-api-key': CONFIG.CLAUDE_API_KEY,
+        'x-api-key': claudeApiKey,
         'anthropic-version': '2023-06-01',
         'content-type': 'application/json',
         'anthropic-dangerous-direct-browser-access': 'true'
@@ -434,5 +450,6 @@ document.getElementById('formAmount').addEventListener('input', () => {
   }
 });
 
-// Load submissions on page load
+// Load submissions and remote config on page load
+loadRemoteConfig();
 loadRecentSubmissions();
