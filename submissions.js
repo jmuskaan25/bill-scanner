@@ -4,7 +4,7 @@
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import { getFirestore, collection, getDocs, orderBy, limit, query } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { getAuth, signInWithRedirect, getRedirectResult, onAuthStateChanged, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { getAuth, signInWithPopup, onAuthStateChanged, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
 // ---- Firebase Init ----
 let db = null;
@@ -27,11 +27,6 @@ const wallSignInBtn = document.getElementById('wallSignInBtn');
 // Hide wall immediately if we know user is already signed in
 if (sessionStorage.getItem('via_authed') === '1' && signInWall) {
   signInWall.style.display = 'none';
-}
-
-// Handle redirect result on page load
-if (auth) {
-  getRedirectResult(auth).catch(err => console.error('Redirect result error:', err));
 }
 
 // ---- Auth ----
@@ -57,7 +52,7 @@ wallSignInBtn.addEventListener('click', async () => {
   try {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    await signInWithRedirect(auth, provider);
+    await signInWithPopup(auth, provider);
   } catch (err) {
     if (err.code !== 'auth/popup-closed-by-user') {
       console.error('Sign-in error:', err);

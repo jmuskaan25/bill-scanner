@@ -6,7 +6,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getFirestore, collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js';
-import { getAuth, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { getAuth, signInWithPopup, signOut, onAuthStateChanged, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
 // ---- Firebase Init ----
 let db = null;
@@ -59,37 +59,30 @@ const signOutLink = document.getElementById('signOutLink');
 const signInWall = document.getElementById('signInWall');
 const wallSignInBtn = document.getElementById('wallSignInBtn');
 
-// Hide wall immediately if we know user is already signed in
+// Hide wall immediately if we know user is already signed in (prevents flash on page nav)
 if (sessionStorage.getItem('via_authed') === '1' && signInWall) {
   signInWall.style.display = 'none';
 }
 
-// Handle redirect result on page load
-if (auth) {
-  getRedirectResult(auth).catch(err => console.error('Redirect result error:', err));
-}
-
 // ---- Auth ----
+// authReady: Firebase hasn't confirmed state yet — don't react to null until it has
+let authReady = false;
+
 if (auth) {
   onAuthStateChanged(auth, (user) => {
+    authReady = true;
     currentUser = user;
     if (user) {
-      // Cache auth state
       sessionStorage.setItem('via_authed', '1');
-      // Hide the sign-in wall
       signInWall.style.display = 'none';
-
       if (signedOutView) signedOutView.style.display = 'none';
       signedInView.style.display = 'flex';
       userAvatar.src = user.photoURL || '';
       userName.textContent = user.displayName || 'User';
       if (userEmail) userEmail.textContent = user.email || '';
     } else {
-      // Clear cached auth state
       sessionStorage.removeItem('via_authed');
-      // Show the sign-in wall
       signInWall.style.display = 'flex';
-
       if (signedOutView) signedOutView.style.display = 'block';
       signedInView.style.display = 'none';
     }
@@ -105,7 +98,7 @@ wallSignInBtn.addEventListener('click', async () => {
   try {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    await signInWithRedirect(auth, provider);
+    await signInWithPopup(auth, provider);
   } catch (err) {
     if (err.code !== 'auth/popup-closed-by-user') {
       console.error('Sign-in error:', err);
@@ -122,7 +115,7 @@ if (googleSignInBtn) googleSignInBtn.addEventListener('click', async () => {
   try {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    await signInWithRedirect(auth, provider);
+    await signInWithPopup(auth, provider);
   } catch (err) {
     if (err.code !== 'auth/popup-closed-by-user') {
       console.error('Sign-in error:', err);
