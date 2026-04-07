@@ -46,194 +46,164 @@
     </div>
   </header>
 
-  <!-- Main Content -->
   <div class="container">
-
-    <!-- Upload Hero Card -->
-    <div class="card card-relative" id="uploadCard">
-      <div class="card-header">
-        <span class="icon">📤</span>
-        <h2>Upload Cab Receipt</h2>
-      </div>
-      <div class="card-body">
-        <!-- Upload Zone -->
-        <div class="upload-zone" id="uploadZone">
-          <span class="upload-icon">☁️</span>
-          <p><strong>Click to upload</strong> or drag and drop</p>
-          <p class="file-types">Supports JPG, PNG, WEBP, and PDF</p>
-        </div>
+    <!-- Step 1: Upload zone (full width) -->
+    <div id="uploadZoneSection">
+      <div class="upload-hero" id="uploadZone">
         <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,application/pdf" hidden>
-
-        <!-- Preview -->
-        <div class="preview-container" id="previewContainer">
-          <img id="previewImage" alt="Receipt preview">
-          <div class="pdf-indicator" id="pdfIndicator" style="display:none;">
-            <span class="pdf-icon">📄</span>
-            <span id="pdfFileName">document.pdf</span>
-          </div>
-          <p class="file-name" id="fileName"></p>
+        <div id="uploadIdleState">
+          <span class="upload-hero-icon">📄</span>
+          <h2>Upload your cab receipt</h2>
+          <p>Drag and drop or <span class="upload-link">browse files</span></p>
+          <p class="upload-hint">Supports Uber, Rapido, Ola · JPG, PNG, PDF</p>
         </div>
-
-        <!-- Scan Button -->
-        <button class="btn-scan" id="scanBtn" disabled>
-          <span id="scanBtnText">🔍 Scan Receipt</span>
-        </button>
-      </div>
-
-      <!-- Loading overlay -->
-      <div class="loading-overlay" id="scanLoading">
-        <div class="spinner-dark"></div>
-        <p class="scanning-text">Analyzing receipt with AI...</p>
+        <div id="uploadScanningState" style="display:none;">
+          <div class="scan-spinner"></div>
+          <p class="scan-text">Reading your receipt...</p>
+          <p class="scan-subtext" id="scanFileName"></p>
+        </div>
       </div>
     </div>
 
-    <!-- Details Section (hidden until scan completes) -->
-    <div id="detailsSection" class="details-section">
-      <div class="details-grid">
-        <!-- Left: Form fields -->
+    <!-- Step 2: Confirm card (hidden, slides up after scan) -->
+    <div id="confirmCard" class="confirm-card" style="display:none;">
+      <!-- Header row: provider + amount -->
+      <div class="confirm-header">
         <div>
-          <div class="card card-relative">
-            <div class="card-header">
-              <span class="icon">📝</span>
-              <h2>Submit Reimbursement</h2>
-            </div>
-            <div class="card-body">
+          <div class="confirm-provider" id="confirmProvider">Uber</div>
+          <div class="confirm-date" id="confirmDate"></div>
+        </div>
+        <div class="confirm-amount" id="confirmAmount">₹0.00</div>
+      </div>
 
-              <form id="reimbursementForm">
-                <div class="form-row">
-                  <div class="form-group">
-                    <label for="formProvider">Provider</label>
-                    <select id="formProvider">
-                      <option value="">Select provider...</option>
-                      <option value="Uber">Uber</option>
-                      <option value="Rapido">Rapido</option>
-                      <option value="Ola">Ola</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label for="formRideId">Ride ID / Booking ID</label>
-                    <input type="text" id="formRideId" placeholder="Extracted from receipt">
-                  </div>
-                </div>
+      <!-- Route -->
+      <div class="confirm-route">
+        <div class="route-point pickup">
+          <span class="route-dot pickup-dot"></span>
+          <span id="confirmPickup" class="route-addr">-</span>
+        </div>
+        <div class="route-line"></div>
+        <div class="route-point drop">
+          <span class="route-dot drop-dot"></span>
+          <span id="confirmDrop" class="route-addr">-</span>
+        </div>
+      </div>
 
-                <div class="form-row">
-                  <div class="form-group">
-                    <label for="formRiderName">Rider Name (on bill)</label>
-                    <input type="text" id="formRiderName" placeholder="Passenger name">
-                  </div>
-                  <div class="form-group">
-                    <label for="formDriverName">Driver Name</label>
-                    <input type="text" id="formDriverName" placeholder="Driver name">
-                  </div>
-                </div>
+      <!-- Details grid (read-only) -->
+      <div class="confirm-details" id="confirmDetailsView">
+        <div class="detail-item"><span class="detail-label">Ride ID</span><span class="detail-value" id="dRideId">-</span></div>
+        <div class="detail-item"><span class="detail-label">Rider</span><span class="detail-value" id="dRiderName">-</span></div>
+        <div class="detail-item"><span class="detail-label">Driver</span><span class="detail-value" id="dDriverName">-</span></div>
+        <div class="detail-item"><span class="detail-label">Vehicle</span><span class="detail-value" id="dVehicle">-</span></div>
+        <div class="detail-item"><span class="detail-label">Payment</span><span class="detail-value" id="dPayment">-</span></div>
+        <div class="detail-item"><span class="detail-label">Currency</span><span class="detail-value" id="dCurrency">-</span></div>
+      </div>
 
-                <div class="form-group">
-                  <label for="formVehicleNumber">Vehicle Number</label>
-                  <input type="text" id="formVehicleNumber" placeholder="License plate">
-                </div>
+      <!-- Purpose field (always visible) -->
+      <div class="confirm-purpose">
+        <label for="confirmPurposeInput">Purpose / Notes</label>
+        <input type="text" id="confirmPurposeInput" placeholder="What was this ride for? (optional)">
+      </div>
 
-                <div class="form-group">
-                  <label for="formPickup">Pickup (source address)</label>
-                  <input type="text" id="formPickup" placeholder="Pickup location">
-                </div>
-
-                <div class="form-group">
-                  <label for="formDrop">Drop (destination address)</label>
-                  <input type="text" id="formDrop" placeholder="Drop location">
-                </div>
-
-                <hr class="divider">
-
-                <div class="form-row">
-                  <div class="form-group">
-                    <label for="formDate">Bill Date</label>
-                    <input type="date" id="formDate">
-                  </div>
-                  <div class="form-group">
-                    <label for="formAmount">Total Amount *</label>
-                    <input type="number" id="formAmount" step="0.01" placeholder="0.00" required>
-                  </div>
-                </div>
-
-                <div class="form-row">
-                  <div class="form-group">
-                    <label for="formCurrency">Currency</label>
-                    <select id="formCurrency">
-                      <option value="INR" selected>INR</option>
-                      <option value="USD">USD</option>
-                      <option value="EUR">EUR</option>
-                      <option value="GBP">GBP</option>
-                      <option value="CAD">CAD</option>
-                      <option value="AUD">AUD</option>
-                      <option value="OTHER">Other</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label for="formPaymentMethod">Payment Method</label>
-                    <select id="formPaymentMethod">
-                      <option value="cash">Cash</option>
-                      <option value="upi">UPI</option>
-                      <option value="card">Card</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label for="formPurpose">Purpose / Notes</label>
-                  <textarea id="formPurpose" placeholder="Brief description of the ride..."></textarea>
-                </div>
-
-                <button type="submit" class="btn-primary" id="submitBtn" disabled>
-                  <span id="submitBtnText">Submit Reimbursement</span>
-                </button>
-              </form>
-            </div>
-
-            <!-- Submit loading overlay -->
-            <div class="loading-overlay" id="submitLoading">
-              <div class="spinner-dark"></div>
-              <p>Submitting reimbursement...</p>
-            </div>
+      <!-- Edit form (hidden by default) -->
+      <div id="editForm" style="display:none;" class="edit-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Provider</label>
+            <select id="formProvider">
+              <option value="Uber">Uber</option>
+              <option value="Rapido">Rapido</option>
+              <option value="Ola">Ola</option>
+              <option value="Auto">Auto</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Ride ID</label>
+            <input type="text" id="formRideId" placeholder="Booking/Trip ID">
           </div>
         </div>
-
-        <!-- Right: Receipt image preview -->
-        <div class="receipt-preview-panel">
-          <div class="card">
-            <div class="card-header">
-              <span class="icon">🧾</span>
-              <h2>Receipt Preview</h2>
-            </div>
-            <div class="card-body">
-              <img id="detailsPreviewImage" alt="Receipt preview" style="display:none;">
-              <div id="detailsPdfPlaceholder" class="pdf-placeholder" style="display:none;">
-                <span style="font-size:48px;display:block;margin-bottom:12px;">📄</span>
-                <span class="pdf-name">document.pdf</span>
-              </div>
-            </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Rider Name</label>
+            <input type="text" id="formRiderName">
+          </div>
+          <div class="form-group">
+            <label>Driver Name</label>
+            <input type="text" id="formDriverName">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Vehicle Number</label>
+          <input type="text" id="formVehicleNumber">
+        </div>
+        <div class="form-group">
+          <label>Pickup</label>
+          <input type="text" id="formPickup">
+        </div>
+        <div class="form-group">
+          <label>Drop</label>
+          <input type="text" id="formDrop">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Date</label>
+            <input type="date" id="formDate">
+          </div>
+          <div class="form-group">
+            <label>Amount *</label>
+            <input type="number" id="formAmount" step="0.01">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Currency</label>
+            <select id="formCurrency">
+              <option value="INR">INR</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Payment Method</label>
+            <select id="formPaymentMethod">
+              <option value="cash">Cash</option>
+              <option value="upi">UPI</option>
+              <option value="card">Card</option>
+            </select>
           </div>
         </div>
       </div>
+
+      <!-- Actions -->
+      <div class="confirm-actions">
+        <button class="btn-confirm" id="confirmSubmitBtn">Confirm & Submit →</button>
+        <button class="btn-edit-toggle" id="editToggleBtn">Edit details</button>
+        <button class="btn-cancel" id="cancelBtn">Upload different receipt</button>
+      </div>
+
+      <!-- Submit loading overlay -->
+      <div class="loading-overlay card-relative" id="submitLoading" style="display:none;">
+        <div class="scan-spinner small"></div>
+        <p>Submitting...</p>
+      </div>
     </div>
 
-    <!-- Success Section (hidden until submit succeeds) -->
+    <!-- Step 3: Success -->
     <div id="successSection" style="display:none;" class="success-section">
-      <div class="success-icon">✅</div>
-      <h2>Reimbursement Submitted!</h2>
-      <p>Your cab expense has been recorded and is pending approval.</p>
+      <div class="success-icon">🎉</div>
+      <h2>Submitted!</h2>
+      <p id="successMsg">Your receipt has been submitted for reimbursement.</p>
       <div class="success-actions">
-        <a href="submissions.html" class="btn-submissions">📊 View All Submissions</a>
-        <button class="btn-new" id="submitAnotherBtn">Submit Another Receipt</button>
+        <a href="submissions.html" class="btn-submissions">View your submission →</a>
+        <button class="btn-new" id="submitAnotherBtn">Submit another</button>
       </div>
     </div>
-
   </div>
 
-  <!-- Toast Container -->
   <div class="toast-container" id="toastContainer"></div>
 
-  <!-- Scripts -->
   <script src="config.js"></script>
   <script type="module" src="app.js"></script>
 

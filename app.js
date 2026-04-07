@@ -32,18 +32,18 @@ let currentBase64 = null;
 // ---- DOM Refs ----
 const uploadZone = document.getElementById('uploadZone');
 const fileInput = document.getElementById('fileInput');
-const previewContainer = document.getElementById('previewContainer');
-const previewImage = document.getElementById('previewImage');
-const pdfIndicator = document.getElementById('pdfIndicator');
-const pdfFileName = document.getElementById('pdfFileName');
-const fileNameEl = document.getElementById('fileName');
-const scanBtn = document.getElementById('scanBtn');
-const scanBtnText = document.getElementById('scanBtnText');
-const scanLoading = document.getElementById('scanLoading');
-const submitBtn = document.getElementById('submitBtn');
-const submitBtnText = document.getElementById('submitBtnText');
+const uploadIdleState = document.getElementById('uploadIdleState');
+const uploadScanningState = document.getElementById('uploadScanningState');
+const scanFileName = document.getElementById('scanFileName');
+const uploadZoneSection = document.getElementById('uploadZoneSection');
+const confirmCard = document.getElementById('confirmCard');
+const confirmSubmitBtn = document.getElementById('confirmSubmitBtn');
+const editToggleBtn = document.getElementById('editToggleBtn');
+const cancelBtn = document.getElementById('cancelBtn');
+const editForm = document.getElementById('editForm');
+const confirmDetailsView = document.getElementById('confirmDetailsView');
 const submitLoading = document.getElementById('submitLoading');
-const reimbursementForm = document.getElementById('reimbursementForm');
+const successSection = document.getElementById('successSection');
 const toastContainer = document.getElementById('toastContainer');
 
 // Auth DOM refs
@@ -79,10 +79,6 @@ if (auth) {
       userAvatar.src = user.photoURL || '';
       userName.textContent = user.displayName || 'User';
       if (userEmail) userEmail.textContent = user.email || '';
-      // Enable submit if amount is filled
-      if (document.getElementById('formAmount').value) {
-        submitBtn.disabled = false;
-      }
     } else {
       // Clear cached auth state
       sessionStorage.removeItem('via_authed');
@@ -91,7 +87,6 @@ if (auth) {
 
       if (signedOutView) signedOutView.style.display = 'block';
       signedInView.style.display = 'none';
-      submitBtn.disabled = true;
     }
   });
 }
@@ -188,115 +183,133 @@ function handleFileUpload(file) {
 
   currentFile = file;
 
-  // Read file as base64
+  // Show scanning state immediately
+  uploadIdleState.style.display = 'none';
+  uploadScanningState.style.display = 'block';
+  scanFileName.textContent = file.name;
+
+  // Read file as base64 then auto-scan
   const reader = new FileReader();
   reader.onload = (e) => {
     const dataUrl = e.target.result;
     currentBase64 = dataUrl.split(',')[1];
-
-    // Show preview
-    previewContainer.classList.add('visible');
-    fileNameEl.textContent = file.name;
-
-    if (file.type === 'application/pdf') {
-      previewImage.style.display = 'none';
-      pdfIndicator.style.display = 'flex';
-      pdfFileName.textContent = file.name;
-    } else {
-      pdfIndicator.style.display = 'none';
-      previewImage.style.display = 'block';
-      previewImage.src = dataUrl;
-    }
-
-    uploadZone.classList.add('has-file');
-    scanBtn.disabled = false;
+    // Auto-scan immediately
+    scanBill();
   };
   reader.readAsDataURL(file);
 }
 
 // ---- Scan Bill with Claude API ----
-scanBtn.addEventListener('click', scanBill);
-
 async function scanBill() {
   if (!currentFile || !currentBase64) return;
 
   if (!functions) {
     showToast('Firebase not initialized.', 'error');
+    resetUploadState();
     return;
   }
-
-  // Show loading
-  scanBtn.disabled = true;
-  scanBtnText.innerHTML = '<span class="spinner"></span> Scanning...';
-  scanLoading.classList.add('visible');
 
   try {
     const scanBillFn = httpsCallable(functions, 'scanBill');
     const result = await scanBillFn({ imageBase64: currentBase64, mediaType: currentFile.type });
     const data = result.data;
 
-    // Populate cab-specific fields
-    document.getElementById('formProvider').value = data.provider || '';
-    document.getElementById('formRideId').value = data.rideId || '';
-    document.getElementById('formRiderName').value = data.riderName || '';
-    document.getElementById('formDriverName').value = data.driverName || '';
-    document.getElementById('formVehicleNumber').value = data.vehicleNumber || '';
-    document.getElementById('formPickup').value = data.pickup || '';
-    document.getElementById('formDrop').value = data.drop || '';
-    document.getElementById('formDate').value = data.date || '';
-    document.getElementById('formAmount').value = data.totalAmount || '';
-    document.getElementById('formPaymentMethod').value = data.paymentMethod || 'cash';
-
-    // Set currency
-    if (data.currency) {
-      const currencySelect = document.getElementById('formCurrency');
-      const option = Array.from(currencySelect.options).find(
-        o => o.value.toLowerCase() === data.currency.toLowerCase()
-      );
-      if (option) {
-        currencySelect.value = option.value;
-      } else {
-        currencySelect.value = 'OTHER';
-      }
-    }
-
-    // Enable submit if user is signed in
-    if (currentUser) {
-      submitBtn.disabled = false;
-    }
-
-    // Show details section and scroll to it
-    const detailsSection = document.getElementById('detailsSection');
-    detailsSection.style.display = 'block';
-    detailsSection.scrollIntoView({ behavior: 'smooth' });
-
-    // Also populate the receipt preview in the details panel
-    const detailsPreviewImage = document.getElementById('detailsPreviewImage');
-    const detailsPdfPlaceholder = document.getElementById('detailsPdfPlaceholder');
-    if (currentFile.type === 'application/pdf') {
-      detailsPreviewImage.style.display = 'none';
-      detailsPdfPlaceholder.style.display = 'block';
-      detailsPdfPlaceholder.querySelector('.pdf-name').textContent = currentFile.name;
-    } else {
-      detailsPdfPlaceholder.style.display = 'none';
-      detailsPreviewImage.style.display = 'block';
-      detailsPreviewImage.src = `data:${currentFile.type};base64,${currentBase64}`;
-    }
-
-    showToast('Receipt scanned successfully!', 'success');
+    populateConfirmCard(data);
   } catch (err) {
     console.error('Scan error:', err);
     showToast(`Scan failed: ${err.message}`, 'error');
-  } finally {
-    scanBtn.disabled = false;
-    scanBtnText.innerHTML = '🔍 Scan Receipt';
-    scanLoading.classList.remove('visible');
+    resetUploadState();
   }
 }
 
-// ---- Submit Reimbursement ----
-reimbursementForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
+// ---- Populate Confirm Card ----
+function populateConfirmCard(data) {
+  // Header
+  document.getElementById('confirmProvider').textContent = data.provider || 'Unknown';
+  const currency = data.currency || 'INR';
+  const symbol = currency === 'INR' ? '₹' : currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : currency;
+  document.getElementById('confirmAmount').textContent = `${symbol}${Number(data.totalAmount || 0).toFixed(2)}`;
+  document.getElementById('confirmDate').textContent = data.date || '';
+
+  // Route
+  document.getElementById('confirmPickup').textContent = data.pickup || '-';
+  document.getElementById('confirmDrop').textContent = data.drop || '-';
+
+  // Details
+  document.getElementById('dRideId').textContent = data.rideId || '-';
+  document.getElementById('dRiderName').textContent = data.riderName || '-';
+  document.getElementById('dDriverName').textContent = data.driverName || '-';
+  document.getElementById('dVehicle').textContent = data.vehicleNumber || '-';
+  document.getElementById('dPayment').textContent = data.paymentMethod || '-';
+  document.getElementById('dCurrency').textContent = currency;
+
+  // Edit form (pre-populate)
+  document.getElementById('formProvider').value = data.provider || 'Other';
+  document.getElementById('formRideId').value = data.rideId || '';
+  document.getElementById('formRiderName').value = data.riderName || '';
+  document.getElementById('formDriverName').value = data.driverName || '';
+  document.getElementById('formVehicleNumber').value = data.vehicleNumber || '';
+  document.getElementById('formPickup').value = data.pickup || '';
+  document.getElementById('formDrop').value = data.drop || '';
+  document.getElementById('formDate').value = data.date || '';
+  document.getElementById('formAmount').value = data.totalAmount || '';
+  document.getElementById('formCurrency').value = currency;
+  document.getElementById('formPaymentMethod').value = data.paymentMethod || 'cash';
+
+  // Clear purpose
+  document.getElementById('confirmPurposeInput').value = '';
+
+  // Reset edit state
+  editForm.style.display = 'none';
+  confirmDetailsView.style.display = 'grid';
+  editToggleBtn.textContent = 'Edit details';
+
+  // Show confirm card with animation
+  uploadZoneSection.style.display = 'none';
+  confirmCard.style.display = 'block';
+  requestAnimationFrame(() => confirmCard.classList.add('visible'));
+}
+
+// ---- Edit Toggle ----
+editToggleBtn.addEventListener('click', () => {
+  const isEditing = editForm.style.display !== 'none';
+  if (isEditing) {
+    // Save edits back to display view
+    const currency = document.getElementById('formCurrency').value;
+    const symbol = currency === 'INR' ? '₹' : currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : currency;
+
+    document.getElementById('confirmProvider').textContent = document.getElementById('formProvider').value || 'Unknown';
+    document.getElementById('confirmAmount').textContent = `${symbol}${Number(document.getElementById('formAmount').value || 0).toFixed(2)}`;
+    document.getElementById('confirmDate').textContent = document.getElementById('formDate').value || '';
+    document.getElementById('confirmPickup').textContent = document.getElementById('formPickup').value || '-';
+    document.getElementById('confirmDrop').textContent = document.getElementById('formDrop').value || '-';
+    document.getElementById('dRideId').textContent = document.getElementById('formRideId').value || '-';
+    document.getElementById('dRiderName').textContent = document.getElementById('formRiderName').value || '-';
+    document.getElementById('dDriverName').textContent = document.getElementById('formDriverName').value || '-';
+    document.getElementById('dVehicle').textContent = document.getElementById('formVehicleNumber').value || '-';
+    document.getElementById('dPayment').textContent = document.getElementById('formPaymentMethod').value || '-';
+    document.getElementById('dCurrency').textContent = currency;
+
+    editForm.style.display = 'none';
+    confirmDetailsView.style.display = 'grid';
+    editToggleBtn.textContent = 'Edit details';
+  } else {
+    editForm.style.display = 'block';
+    confirmDetailsView.style.display = 'none';
+    editToggleBtn.textContent = 'Done editing';
+  }
+});
+
+// ---- Cancel (upload different receipt) ----
+cancelBtn.addEventListener('click', () => {
+  confirmCard.style.display = 'none';
+  confirmCard.classList.remove('visible');
+  uploadZoneSection.style.display = 'block';
+  resetUploadState();
+});
+
+// ---- Submit ----
+confirmSubmitBtn.addEventListener('click', async () => {
   await submitReimbursement();
 });
 
@@ -327,16 +340,15 @@ async function submitReimbursement() {
   const formAmount = parseFloat(document.getElementById('formAmount').value);
   const formCurrency = document.getElementById('formCurrency').value;
   const formPaymentMethod = document.getElementById('formPaymentMethod').value;
-  const formPurpose = document.getElementById('formPurpose').value.trim();
+  const formPurpose = document.getElementById('confirmPurposeInput').value.trim();
 
   if (!formAmount) {
     showToast('Please fill in the total amount.', 'error');
     return;
   }
 
-  submitBtn.disabled = true;
-  submitBtnText.innerHTML = '<span class="spinner"></span> Submitting...';
-  submitLoading.classList.add('visible');
+  confirmSubmitBtn.disabled = true;
+  submitLoading.style.display = 'flex';
 
   try {
     // Upload image to Firebase Storage
@@ -370,40 +382,40 @@ async function submitReimbursement() {
 
     await addDoc(collection(db, 'reimbursements'), docData);
 
-    showToast('Reimbursement submitted successfully!', 'success');
+    // Build success message
+    const symbol = formCurrency === 'INR' ? '₹' : formCurrency === 'USD' ? '$' : formCurrency === 'EUR' ? '€' : formCurrency === 'GBP' ? '£' : formCurrency;
+    document.getElementById('successMsg').textContent = `${symbol}${formAmount.toFixed(2)} from ${formProvider} has been submitted.`;
 
     // Show success state
-    document.getElementById('detailsSection').style.display = 'none';
-    document.getElementById('uploadCard').style.display = 'none';
-    document.getElementById('successSection').style.display = 'block';
+    confirmCard.style.display = 'none';
+    confirmCard.classList.remove('visible');
+    successSection.style.display = 'block';
 
+    showToast('Reimbursement submitted successfully!', 'success');
   } catch (err) {
     console.error('Submit error:', err);
     showToast(`Submission failed: ${err.message}`, 'error');
   } finally {
-    submitBtn.disabled = false;
-    submitBtnText.textContent = 'Submit Reimbursement';
-    submitLoading.classList.remove('visible');
+    confirmSubmitBtn.disabled = false;
+    submitLoading.style.display = 'none';
   }
 }
 
 // ---- Submit Another ----
 document.getElementById('submitAnotherBtn').addEventListener('click', () => {
-  document.getElementById('successSection').style.display = 'none';
-  document.getElementById('uploadCard').style.display = 'block';
-  resetForm();
+  successSection.style.display = 'none';
+  uploadZoneSection.style.display = 'block';
+  resetUploadState();
 });
 
-function resetForm() {
-  reimbursementForm.reset();
+// ---- Reset Upload State ----
+function resetUploadState() {
   currentFile = null;
   currentBase64 = null;
-  previewContainer.classList.remove('visible');
-  uploadZone.classList.remove('has-file');
-  scanBtn.disabled = true;
-  submitBtn.disabled = true;
   fileInput.value = '';
-  document.getElementById('detailsSection').style.display = 'none';
+  uploadIdleState.style.display = 'block';
+  uploadScanningState.style.display = 'none';
+  scanFileName.textContent = '';
 }
 
 // ---- Utility ----
@@ -413,11 +425,3 @@ function escapeHtml(str) {
   div.textContent = str;
   return div.innerHTML;
 }
-
-// ---- Init ----
-// Enable submit button when amount changes and user is signed in
-document.getElementById('formAmount').addEventListener('input', () => {
-  if (document.getElementById('formAmount').value && currentUser) {
-    submitBtn.disabled = false;
-  }
-});
