@@ -32,16 +32,21 @@
       </div>
       <div class="header-actions">
         <a href="submissions.html" class="btn-submissions">📊 View Submissions</a>
-        <div id="signedInView" style="display:none;" class="user-chip-wrapper">
-          <div class="user-chip">
-            <img id="userAvatar" src="" alt="">
-            <span class="user-chip-name" id="userName"></span>
+        <div id="signedInView" style="display:none;" class="profile-menu-wrapper">
+          <img id="userAvatar" src="" alt="" class="profile-avatar" id="profileToggle">
+          <div id="profileDropdown" class="profile-dropdown">
+            <div class="profile-dropdown-header">
+              <img id="userAvatarLarge" src="" alt="" class="profile-avatar-large">
+              <div>
+                <div class="profile-dropdown-name" id="userName"></div>
+                <div class="profile-dropdown-email" id="userEmail"></div>
+              </div>
+            </div>
+            <hr class="profile-dropdown-divider">
+            <button class="profile-dropdown-signout" id="signOutLink">Sign out</button>
           </div>
-          <button class="signout-btn" id="signOutLink">Sign out</button>
         </div>
-        <div id="signedOutView" style="display:none;">
-          <!-- hidden, wall handles sign in -->
-        </div>
+        <div id="signedOutView" style="display:none;"></div>
       </div>
     </div>
   </header>

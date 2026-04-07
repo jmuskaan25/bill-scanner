@@ -76,6 +76,8 @@ if (auth) {
       if (signedOutView) signedOutView.style.display = 'none';
       signedInView.style.display = 'flex';
       userAvatar.src = user.photoURL || '';
+      const userAvatarLarge = document.getElementById('userAvatarLarge');
+      if (userAvatarLarge) userAvatarLarge.src = user.photoURL || '';
       userName.textContent = user.displayName || 'User';
       if (userEmail) userEmail.textContent = user.email || '';
     } else {
@@ -131,6 +133,19 @@ signOutLink.addEventListener('click', async () => {
     console.error('Sign-out error:', err);
   }
 });
+
+// ---- Profile Dropdown ----
+const profileDropdown = document.getElementById('profileDropdown');
+if (userAvatar && profileDropdown) {
+  userAvatar.addEventListener('click', (e) => {
+    e.stopPropagation();
+    profileDropdown.classList.toggle('open');
+  });
+  document.addEventListener('click', () => {
+    profileDropdown.classList.remove('open');
+  });
+  profileDropdown.addEventListener('click', (e) => e.stopPropagation());
+}
 
 // ---- Toast Notifications ----
 function showToast(message, type = 'info') {

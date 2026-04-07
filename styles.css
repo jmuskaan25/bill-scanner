@@ -190,50 +190,96 @@ body {
   background: #f9fafb;
 }
 
-/* User chip in header */
-.user-chip-wrapper {
-  display: flex;
-  align-items: center;
-  gap: clamp(4px, 1vw, 8px);
+/* Profile menu */
+.profile-menu-wrapper {
+  position: relative;
 }
 
-.user-chip {
-  display: flex;
-  align-items: center;
-  gap: clamp(4px, 1vw, 8px);
-  padding: 4px clamp(6px, 1.5vw, 12px) 4px 4px;
-  background: #f3f4f6;
-  border-radius: 999px;
+.profile-avatar {
+  width: clamp(30px, 4vw, 36px);
+  height: clamp(30px, 4vw, 36px);
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.15s;
+  display: block;
 }
 
-.user-chip img {
-  width: clamp(22px, 3.5vw, 28px);
-  height: clamp(22px, 3.5vw, 28px);
+.profile-avatar:hover {
+  border-color: #2563eb;
+}
+
+.profile-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.04);
+  min-width: 240px;
+  z-index: 200;
+  animation: dropIn 0.15s ease;
+}
+
+.profile-dropdown.open {
+  display: block;
+}
+
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.profile-dropdown-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+}
+
+.profile-avatar-large {
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
 }
 
-.user-chip-name {
-  font-size: clamp(11px, 1.5vw, 13px);
-  font-weight: 500;
-  color: #374151;
-  max-width: clamp(40px, 10vw, 120px);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.profile-dropdown-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
 }
 
-.signout-btn {
-  font-size: clamp(10px, 1.4vw, 12px);
+.profile-dropdown-email {
+  font-size: 12px;
   color: #6b7280;
+  margin-top: 2px;
+}
+
+.profile-dropdown-divider {
+  border: none;
+  border-top: 1px solid #f3f4f6;
+  margin: 0;
+}
+
+.profile-dropdown-signout {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
   background: none;
   border: none;
+  text-align: left;
+  font-size: 14px;
+  color: #6b7280;
   cursor: pointer;
-  padding: 0;
   font-family: inherit;
-  white-space: nowrap;
+  border-radius: 0 0 12px 12px;
+  transition: all 0.1s;
 }
 
-.signout-btn:hover {
+.profile-dropdown-signout:hover {
+  background: #fef2f2;
   color: #ef4444;
 }
 
