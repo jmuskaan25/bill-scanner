@@ -24,13 +24,20 @@ const toastContainer = document.getElementById('toastContainer');
 const signInWall = document.getElementById('signInWall');
 const wallSignInBtn = document.getElementById('wallSignInBtn');
 
+// Hide wall immediately if we know user is already signed in
+if (sessionStorage.getItem('via_authed') === '1' && signInWall) {
+  signInWall.style.display = 'none';
+}
+
 // ---- Auth ----
 if (auth) {
   onAuthStateChanged(auth, (user) => {
     if (user) {
+      sessionStorage.setItem('via_authed', '1');
       signInWall.style.display = 'none';
       loadRecentSubmissions();
     } else {
+      sessionStorage.removeItem('via_authed');
       signInWall.style.display = 'flex';
     }
   });
@@ -43,7 +50,9 @@ wallSignInBtn.addEventListener('click', async () => {
     return;
   }
   try {
-    await signInWithPopup(auth, new GoogleAuthProvider());
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    await signInWithPopup(auth, provider);
   } catch (err) {
     if (err.code !== 'auth/popup-closed-by-user') {
       console.error('Sign-in error:', err);

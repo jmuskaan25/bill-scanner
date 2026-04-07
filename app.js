@@ -59,11 +59,18 @@ const signOutLink = document.getElementById('signOutLink');
 const signInWall = document.getElementById('signInWall');
 const wallSignInBtn = document.getElementById('wallSignInBtn');
 
+// Hide wall immediately if we know user is already signed in
+if (sessionStorage.getItem('via_authed') === '1' && signInWall) {
+  signInWall.style.display = 'none';
+}
+
 // ---- Auth ----
 if (auth) {
   onAuthStateChanged(auth, (user) => {
     currentUser = user;
     if (user) {
+      // Cache auth state
+      sessionStorage.setItem('via_authed', '1');
       // Hide the sign-in wall
       signInWall.style.display = 'none';
 
@@ -77,6 +84,8 @@ if (auth) {
         submitBtn.disabled = false;
       }
     } else {
+      // Clear cached auth state
+      sessionStorage.removeItem('via_authed');
       // Show the sign-in wall
       signInWall.style.display = 'flex';
 
@@ -94,7 +103,9 @@ wallSignInBtn.addEventListener('click', async () => {
     return;
   }
   try {
-    await signInWithPopup(auth, new GoogleAuthProvider());
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    await signInWithPopup(auth, provider);
   } catch (err) {
     if (err.code !== 'auth/popup-closed-by-user') {
       console.error('Sign-in error:', err);
@@ -109,7 +120,9 @@ if (googleSignInBtn) googleSignInBtn.addEventListener('click', async () => {
     return;
   }
   try {
-    await signInWithPopup(auth, new GoogleAuthProvider());
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    await signInWithPopup(auth, provider);
   } catch (err) {
     if (err.code !== 'auth/popup-closed-by-user') {
       console.error('Sign-in error:', err);
@@ -252,6 +265,24 @@ async function scanBill() {
       submitBtn.disabled = false;
     }
 
+    // Show details section and scroll to it
+    const detailsSection = document.getElementById('detailsSection');
+    detailsSection.style.display = 'block';
+    detailsSection.scrollIntoView({ behavior: 'smooth' });
+
+    // Also populate the receipt preview in the details panel
+    const detailsPreviewImage = document.getElementById('detailsPreviewImage');
+    const detailsPdfPlaceholder = document.getElementById('detailsPdfPlaceholder');
+    if (currentFile.type === 'application/pdf') {
+      detailsPreviewImage.style.display = 'none';
+      detailsPdfPlaceholder.style.display = 'block';
+      detailsPdfPlaceholder.querySelector('.pdf-name').textContent = currentFile.name;
+    } else {
+      detailsPdfPlaceholder.style.display = 'none';
+      detailsPreviewImage.style.display = 'block';
+      detailsPreviewImage.src = `data:${currentFile.type};base64,${currentBase64}`;
+    }
+
     showToast('Receipt scanned successfully!', 'success');
   } catch (err) {
     console.error('Scan error:', err);
@@ -341,8 +372,10 @@ async function submitReimbursement() {
 
     showToast('Reimbursement submitted successfully!', 'success');
 
-    // Reset form
-    resetForm();
+    // Show success state
+    document.getElementById('detailsSection').style.display = 'none';
+    document.getElementById('uploadCard').style.display = 'none';
+    document.getElementById('successSection').style.display = 'block';
 
   } catch (err) {
     console.error('Submit error:', err);
@@ -354,6 +387,13 @@ async function submitReimbursement() {
   }
 }
 
+// ---- Submit Another ----
+document.getElementById('submitAnotherBtn').addEventListener('click', () => {
+  document.getElementById('successSection').style.display = 'none';
+  document.getElementById('uploadCard').style.display = 'block';
+  resetForm();
+});
+
 function resetForm() {
   reimbursementForm.reset();
   currentFile = null;
@@ -363,6 +403,7 @@ function resetForm() {
   scanBtn.disabled = true;
   submitBtn.disabled = true;
   fileInput.value = '';
+  document.getElementById('detailsSection').style.display = 'none';
 }
 
 // ---- Utility ----

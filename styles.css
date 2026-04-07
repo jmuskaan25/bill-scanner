@@ -677,6 +677,38 @@ label {
   gap: 24px;
 }
 
+/* ---- Success Section ---- */
+.success-section {
+  text-align: center;
+  padding: 80px 24px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  margin-top: 24px;
+}
+.success-icon { font-size: 56px; display: block; margin-bottom: 16px; }
+.success-section h2 { font-size: 24px; font-weight: 700; color: #111827; margin-bottom: 8px; }
+.success-section p { color: #6b7280; font-size: 15px; margin-bottom: 32px; }
+.success-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.btn-new {
+  padding: 10px 20px; background: transparent; border: 1.5px solid #d1d5db;
+  border-radius: 8px; font-size: 14px; font-weight: 500; color: #374151; cursor: pointer;
+}
+.btn-new:hover { background: #f9fafb; }
+
+/* ---- Details Section ---- */
+.details-section { display: none; margin-top: 24px; }
+.details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+@media (max-width: 768px) { .details-grid { grid-template-columns: 1fr; } }
+
+/* ---- Receipt Preview Panel ---- */
+.receipt-preview-panel img {
+  width: 100%; border-radius: 10px; border: 1px solid #e5e7eb; object-fit: contain; max-height: 400px;
+}
+.receipt-preview-panel .pdf-placeholder {
+  background: #f3f4f6; border-radius: 10px; padding: 48px 24px; text-align: center; color: #6b7280;
+}
+
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
   .main-grid {
