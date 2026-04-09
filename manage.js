@@ -1,7 +1,6 @@
 // ============================================
 // Cab Bill Scanner - Admin Management Page
 // ============================================
-console.log('manage.js loaded');
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import { getFirestore, collection, getDocs, doc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
@@ -223,21 +222,17 @@ async function loadAllSubmissions() {
 }
 
 // ---- Sync Sheet ----
-console.log('Setting up sync button');
 const syncSheetBtn = document.getElementById('syncSheetBtn');
-console.log('syncSheetBtn found:', !!syncSheetBtn);
 if (syncSheetBtn) {
   syncSheetBtn.addEventListener('click', async () => {
     syncSheetBtn.disabled = true;
     syncSheetBtn.textContent = 'Syncing...';
     try {
-      if (!functions) throw new Error('Firebase Functions not initialized');
       const backfillFn = httpsCallable(functions, 'backfillSheet');
       const result = await backfillFn({});
       showToast(`Synced ${result.data.synced} records to Google Sheet`, 'success');
     } catch (err) {
       console.error('Sync error:', err);
-      alert('Sync error: ' + err.message);
       showToast(`Sync failed: ${err.message}`, 'error');
     } finally {
       syncSheetBtn.disabled = false;
