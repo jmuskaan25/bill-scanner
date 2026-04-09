@@ -146,3 +146,60 @@ exports.updateSheetStatus = onCall(
     return { updated: true, row: rowIndex };
   }
 );
+
+// ---- Backfill: sync all existing Firestore docs to Google Sheet ----
+const admin = require('firebase-admin');
+if (!admin.apps.length) admin.initializeApp();
+
+exports.backfillSheet = onCall(
+  { timeoutSeconds: 120 },
+  async (request) => {
+    const db = admin.firestore();
+    const snapshot = await db.collection('reimbursements').get();
+
+    if (snapshot.empty) return { synced: 0 };
+
+    const auth = new google.auth.GoogleAuth({
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    });
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    // Clear existing data (keep header row)
+    await sheets.spreadsheets.values.clear({
+      spreadsheetId: SHEET_ID,
+      range: 'Sheet1!A2:O',
+    });
+
+    const rows = [];
+    snapshot.forEach(doc => {
+      const d = doc.data();
+      rows.push([
+        doc.id,
+        d.submittedBy || '',
+        d.email || '',
+        d.provider || '',
+        d.rideId || '',
+        d.date || '',
+        d.pickup || '',
+        d.drop || '',
+        d.totalAmount != null ? d.totalAmount : '',
+        d.currency || '',
+        d.paymentMethod || '',
+        d.purpose || '',
+        d.status || 'pending',
+        d.imageUrl || '',
+        d.submittedAt?.toDate?.().toISOString() || '',
+      ]);
+    });
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SHEET_ID,
+      range: 'Sheet1!A:O',
+      valueInputOption: 'RAW',
+      requestBody: { values: rows },
+    });
+
+    console.log(`Backfilled ${rows.length} docs to sheet`);
+    return { synced: rows.length };
+  }
+);

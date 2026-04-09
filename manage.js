@@ -221,6 +221,26 @@ async function loadAllSubmissions() {
   }
 }
 
+// ---- Sync Sheet ----
+const syncSheetBtn = document.getElementById('syncSheetBtn');
+if (syncSheetBtn) {
+  syncSheetBtn.addEventListener('click', async () => {
+    syncSheetBtn.disabled = true;
+    syncSheetBtn.textContent = 'Syncing...';
+    try {
+      const backfillFn = httpsCallable(functions, 'backfillSheet');
+      const result = await backfillFn({});
+      showToast(`Synced ${result.data.synced} records to Google Sheet`, 'success');
+    } catch (err) {
+      console.error(err);
+      showToast(`Sync failed: ${err.message}`, 'error');
+    } finally {
+      syncSheetBtn.disabled = false;
+      syncSheetBtn.textContent = '🔄 Sync Sheet';
+    }
+  });
+}
+
 // ---- Utility ----
 function escapeHtml(str) {
   if (!str) return '';
