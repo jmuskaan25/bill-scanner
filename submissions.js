@@ -3,7 +3,7 @@
 // ============================================
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-import { getFirestore, collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { getFirestore, collection, getDocs, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { getAuth, signInWithPopup, onAuthStateChanged, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
 // ---- Firebase Init ----
@@ -38,6 +38,13 @@ if (auth) {
       currentUser = user;
       sessionStorage.setItem('via_authed', '1');
       if (signInWall) signInWall.style.display = 'none';
+      if (sessionStorage.getItem('via_admin') === '1') {
+        const sheetLink = document.getElementById('sheetLink');
+        if (sheetLink) {
+          sheetLink.href = CONFIG.GOOGLE_SHEET_URL || '#';
+          sheetLink.style.display = 'inline';
+        }
+      }
       loadRecentSubmissions();
     } else {
       sessionStorage.removeItem('via_authed');
@@ -80,11 +87,11 @@ async function loadRecentSubmissions() {
   submissionsBody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:32px;color:#9ca3af;">Loading...</td></tr>`;
 
   try {
-    // Filter by current user's email — no orderBy so no index required
-    const q = query(
-      collection(db, 'reimbursements'),
-      where('email', '==', currentUser.email)
-    );
+    // Admin sees all; regular user sees only their own
+    const isAdmin = sessionStorage.getItem('via_admin') === '1';
+    const q = isAdmin
+      ? collection(db, 'reimbursements')
+      : query(collection(db, 'reimbursements'), where('email', '==', currentUser.email));
     const snapshot = await getDocs(q);
 
     if (snapshot.empty) {

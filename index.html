@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pronto Travel</title>
-  <link rel="stylesheet" href="styles.css?v=4">
+  <link rel="stylesheet" href="styles.css?v=5">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚕</text></svg>">
 </head>
 <body>
@@ -19,6 +19,12 @@
         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" alt="Google">
         Continue with Google
       </button>
+      <div style="margin-top: 20px;">
+        <button type="button" id="adminToggleBtn" class="admin-toggle-btn">Sign in as Admin</button>
+        <div id="adminPasswordField" style="display:none; margin-top: 12px;">
+          <input type="password" id="adminPasswordInput" placeholder="Enter admin password" class="admin-password-input">
+        </div>
+      </div>
     </div>
   </div>
 
@@ -32,6 +38,7 @@
       </div>
       <div class="header-actions">
         <a href="submissions.html" class="btn-submissions">📊 View Submissions</a>
+        <a href="manage.html" class="btn-submissions" id="manageLink" style="display:none; background:#111827;">🔧 Manage</a>
         <div id="signedInView" style="display:none;" class="profile-menu-wrapper">
           <img id="userAvatar" src="" alt="" class="profile-avatar">
           <div id="profileDropdown" class="profile-dropdown" style="display:none;">

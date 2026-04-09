@@ -59,6 +59,19 @@ const signOutLink = document.getElementById('signOutLink');
 const signInWall = document.getElementById('signInWall');
 const wallSignInBtn = document.getElementById('wallSignInBtn');
 
+// Admin refs
+const adminToggleBtn = document.getElementById('adminToggleBtn');
+const adminPasswordField = document.getElementById('adminPasswordField');
+const adminPasswordInput = document.getElementById('adminPasswordInput');
+
+if (adminToggleBtn && adminPasswordField) {
+  adminToggleBtn.addEventListener('click', () => {
+    const isVisible = adminPasswordField.style.display !== 'none';
+    adminPasswordField.style.display = isVisible ? 'none' : 'block';
+    adminToggleBtn.textContent = isVisible ? 'Sign in as Admin' : 'Cancel admin login';
+  });
+}
+
 // ---- Auth ----
 // Hide wall immediately if we know user was recently signed in
 if (sessionStorage.getItem('via_authed') === '1' && signInWall) {
@@ -80,6 +93,10 @@ if (auth) {
       if (userAvatarLarge) userAvatarLarge.src = user.photoURL || '';
       userName.textContent = user.displayName || 'User';
       if (userEmail) userEmail.textContent = user.email || '';
+      if (sessionStorage.getItem('via_admin') === '1') {
+        const manageLink = document.getElementById('manageLink');
+        if (manageLink) manageLink.style.display = 'inline-flex';
+      }
     } else {
       sessionStorage.removeItem('via_authed');
       if (signInWall) signInWall.style.display = 'flex';
@@ -98,6 +115,17 @@ wallSignInBtn.addEventListener('click', async () => {
   // Show loading state on the button immediately
   wallSignInBtn.disabled = true;
   wallSignInBtn.textContent = 'Signing in...';
+
+  const isAdminAttempt = adminPasswordField && adminPasswordField.style.display !== 'none';
+  if (isAdminAttempt) {
+    if (!adminPasswordInput || adminPasswordInput.value !== 'admin') {
+      showToast('Incorrect admin password.', 'error');
+      wallSignInBtn.disabled = false;
+      wallSignInBtn.innerHTML = '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" alt="Google"> Continue with Google';
+      return;
+    }
+  }
+
   try {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
@@ -105,6 +133,9 @@ wallSignInBtn.addEventListener('click', async () => {
     // Hide wall immediately — don't wait for onAuthStateChanged
     if (result.user) {
       sessionStorage.setItem('via_authed', '1');
+      if (isAdminAttempt) {
+        sessionStorage.setItem('via_admin', '1');
+      }
       if (signInWall) signInWall.style.display = 'none';
     }
   } catch (err) {
@@ -137,6 +168,7 @@ if (googleSignInBtn) googleSignInBtn.addEventListener('click', async () => {
 signOutLink.addEventListener('click', async () => {
   if (!auth) return;
   try {
+    sessionStorage.removeItem('via_admin');
     await signOut(auth);
     showToast('Signed out.', 'info');
   } catch (err) {

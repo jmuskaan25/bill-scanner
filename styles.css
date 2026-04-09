@@ -968,3 +968,45 @@ label {
   .confirm-amount { font-size: 26px; }
   .upload-hero { padding: 48px 20px; min-height: 220px; }
 }
+
+/* ---- Admin Styles ---- */
+.admin-toggle-btn {
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: underline;
+}
+.admin-toggle-btn:hover { color: #374151; }
+
+.admin-password-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.admin-password-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+}
+
+/* Action buttons in manage table */
+.btn-approve, .btn-reject {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: opacity 0.15s;
+}
+.btn-approve { background: #d1fae5; }
+.btn-approve:hover { opacity: 0.7; }
+.btn-reject { background: #fee2e2; }
+.btn-reject:hover { opacity: 0.7; }
+.action-btns { display: flex; gap: 6px; }

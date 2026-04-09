@@ -1,6 +1,10 @@
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const { defineSecret } = require('firebase-functions/params');
 const Anthropic = require('@anthropic-ai/sdk');
+const { google } = require('googleapis');
+
+const SHEET_ID = '1dMsOc77yzB1OtTDmrr74Ba3-RaaipJYqFd663FRwImE';
 
 const claudeApiKey = defineSecret('CLAUDE_API_KEY');
 
@@ -55,5 +59,90 @@ exports.scanBill = onCall(
       console.error('Anthropic error:', err.constructor.name, err.message, err.status, err.error);
       throw new HttpsError('internal', `Claude API error: ${err.constructor.name}: ${err.message}`);
     }
+  }
+);
+
+// ---- Sync new reimbursement to Google Sheet ----
+exports.syncToSheet = onDocumentCreated(
+  'reimbursements/{docId}',
+  async (event) => {
+    const data = event.data.data();
+    const auth = new google.auth.GoogleAuth({
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    });
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    const row = [
+      event.data.id,
+      data.submittedBy || '',
+      data.email || '',
+      data.provider || '',
+      data.rideId || '',
+      data.date || '',
+      data.pickup || '',
+      data.drop || '',
+      data.totalAmount != null ? data.totalAmount : '',
+      data.currency || '',
+      data.paymentMethod || '',
+      data.purpose || '',
+      data.status || 'pending',
+      data.imageUrl || '',
+      data.submittedAt?.toDate?.().toISOString() || new Date().toISOString(),
+    ];
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SHEET_ID,
+      range: 'Sheet1!A:O',
+      valueInputOption: 'RAW',
+      requestBody: { values: [row] },
+    });
+
+    console.log('Synced doc', event.data.id, 'to sheet');
+  }
+);
+
+// ---- Update status in Google Sheet ----
+exports.updateSheetStatus = onCall(
+  { timeoutSeconds: 30 },
+  async (request) => {
+    const { docId, status } = request.data;
+    if (!docId || !status) {
+      throw new HttpsError('invalid-argument', 'docId and status required');
+    }
+
+    const auth = new google.auth.GoogleAuth({
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    });
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    // Find the row with this docId (column A)
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: 'Sheet1!A:A',
+    });
+
+    const rows = res.data.values || [];
+    let rowIndex = -1;
+    for (let i = 0; i < rows.length; i++) {
+      if (rows[i][0] === docId) {
+        rowIndex = i + 1; // 1-indexed
+        break;
+      }
+    }
+
+    if (rowIndex === -1) {
+      console.warn('Doc not found in sheet:', docId);
+      return { updated: false };
+    }
+
+    // Update column M (status, 13th column)
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SHEET_ID,
+      range: `Sheet1!M${rowIndex}`,
+      valueInputOption: 'RAW',
+      requestBody: { values: [[status]] },
+    });
+
+    return { updated: true, row: rowIndex };
   }
 );
