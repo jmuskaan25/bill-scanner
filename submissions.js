@@ -87,11 +87,17 @@ async function loadRecentSubmissions() {
   submissionsBody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:32px;color:#9ca3af;">Loading...</td></tr>`;
 
   try {
-    // Everyone sees only their own submissions (admin uses Manage page for all)
-    const q = query(collection(db, 'reimbursements'), where('email', '==', currentUser.email));
-    const snapshot = await getDocs(q);
+    // Fetch all, filter client-side by email (avoids needing Firestore composite index)
+    const snapshot = await getDocs(collection(db, 'reimbursements'));
 
-    if (snapshot.empty) {
+    // Filter by current user's email, then sort newest first
+    const docs = [];
+    snapshot.forEach(doc => {
+      const d = doc.data();
+      if (d.email === currentUser.email) docs.push(d);
+    });
+
+    if (docs.length === 0) {
       submissionsBody.innerHTML = `
         <tr><td colspan="7">
           <div class="empty-state">
@@ -102,9 +108,6 @@ async function loadRecentSubmissions() {
       return;
     }
 
-    // Sort client-side: newest first
-    const docs = [];
-    snapshot.forEach(doc => docs.push(doc.data()));
     docs.sort((a, b) => {
       const ta = a.submittedAt?.toDate?.() || new Date(0);
       const tb = b.submittedAt?.toDate?.() || new Date(0);

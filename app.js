@@ -77,6 +77,11 @@ if (adminToggleBtn && adminPasswordField) {
 if (sessionStorage.getItem('via_authed') === '1' && signInWall) {
   signInWall.style.display = 'none';
 }
+// Show manage link immediately if admin flag is already set
+if (sessionStorage.getItem('via_admin') === '1') {
+  const manageLink = document.getElementById('manageLink');
+  if (manageLink) manageLink.style.display = 'inline-flex';
+}
 // Clean up any stale redirect flags
 localStorage.removeItem('via_signing_in');
 
@@ -135,6 +140,8 @@ wallSignInBtn.addEventListener('click', async () => {
       sessionStorage.setItem('via_authed', '1');
       if (isAdminAttempt) {
         sessionStorage.setItem('via_admin', '1');
+        const manageLink = document.getElementById('manageLink');
+        if (manageLink) manageLink.style.display = 'inline-flex';
       }
       if (signInWall) signInWall.style.display = 'none';
     }
