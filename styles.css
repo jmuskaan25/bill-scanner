@@ -1010,3 +1010,20 @@ label {
 .btn-reject { background: #fee2e2; }
 .btn-reject:hover { opacity: 0.7; }
 .action-btns { display: flex; gap: 6px; }
+
+/* Status dropdown */
+.status-select {
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1.5px solid #e5e7eb;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  appearance: auto;
+}
+.status-select:focus { outline: none; border-color: #2563eb; }
+.status-select.status-pending { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+.status-select.status-approved { background: #d1fae5; color: #065f46; border-color: #a7f3d0; }
+.status-select.status-rejected { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+.status-select:disabled { opacity: 0.5; cursor: wait; }

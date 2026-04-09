@@ -125,14 +125,14 @@ function showToast(message, type = 'info') {
 async function loadAllSubmissions() {
   if (!db) return;
 
-  manageBody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:#9ca3af;">Loading...</td></tr>';
+  manageBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:#9ca3af;">Loading...</td></tr>';
 
   try {
     const snapshot = await getDocs(collection(db, 'reimbursements'));
 
     if (snapshot.empty) {
       manageBody.innerHTML = `
-        <tr><td colspan="8">
+        <tr><td colspan="7">
           <div class="empty-state">
             <span class="empty-icon">📭</span>
             <p>No submissions yet.</p>
@@ -170,15 +170,6 @@ async function loadAllSubmissions() {
       const amount = d.totalAmount != null ? `${symbol}${Number(d.totalAmount).toFixed(2)}` : '--';
 
       const status = d.status || 'pending';
-      const statusBadge = `<span class="badge badge-${status}">${status}</span>`;
-
-      let actionsHtml = '';
-      if (status === 'pending') {
-        actionsHtml = `<div class="action-btns">
-          <button class="btn-approve" onclick="window.approveDoc('${d.id}')">✅</button>
-          <button class="btn-reject" onclick="window.rejectDoc('${d.id}')">❌</button>
-        </div>`;
-      }
 
       tr.innerHTML = `
         <td style="white-space:nowrap;">${escapeHtml(submittedAt)}</td>
@@ -187,40 +178,48 @@ async function loadAllSubmissions() {
         <td>${escapeHtml(d.pickup || '--')}</td>
         <td>${escapeHtml(d.drop || '--')}</td>
         <td><strong>${escapeHtml(amount)}</strong></td>
-        <td>${statusBadge}</td>
-        <td>${actionsHtml}</td>
+        <td>
+          <select class="status-select status-${escapeHtml(status)}" data-doc-id="${escapeHtml(d.id)}" data-current="${escapeHtml(status)}">
+            <option value="pending" ${status === 'pending' ? 'selected' : ''}>Pending</option>
+            <option value="approved" ${status === 'approved' ? 'selected' : ''}>Approved</option>
+            <option value="rejected" ${status === 'rejected' ? 'selected' : ''}>Rejected</option>
+          </select>
+        </td>
       `;
       manageBody.appendChild(tr);
     });
 
+    // Attach change listeners to status dropdowns
+    manageBody.querySelectorAll('.status-select').forEach(select => {
+      select.addEventListener('change', async (e) => {
+        const docId = e.target.dataset.docId;
+        const newStatus = e.target.value;
+        const oldStatus = e.target.dataset.current;
+        if (newStatus === oldStatus) return;
+
+        e.target.disabled = true;
+        try {
+          await updateDoc(doc(db, 'reimbursements', docId), { status: newStatus });
+          const updateSheetFn = httpsCallable(functions, 'updateSheetStatus');
+          await updateSheetFn({ docId, status: newStatus });
+          e.target.dataset.current = newStatus;
+          e.target.className = `status-select status-${newStatus}`;
+          showToast(`Updated to ${newStatus}`, 'success');
+        } catch (err) {
+          console.error(err);
+          e.target.value = oldStatus;
+          showToast(`Failed: ${err.message}`, 'error');
+        } finally {
+          e.target.disabled = false;
+        }
+      });
+    });
+
   } catch (err) {
     console.error('Error loading submissions:', err);
-    manageBody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:#ef4444;">Failed to load. Please refresh.</td></tr>';
+    manageBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:#ef4444;">Failed to load. Please refresh.</td></tr>';
   }
 }
-
-// ---- Approve / Reject ----
-async function updateStatus(docId, newStatus) {
-  try {
-    await updateDoc(doc(db, 'reimbursements', docId), { status: newStatus });
-    // Call cloud function to update sheet
-    const updateSheetFn = httpsCallable(functions, 'updateSheetStatus');
-    await updateSheetFn({ docId, status: newStatus });
-    showToast(`Marked as ${newStatus}`, 'success');
-    loadAllSubmissions();
-  } catch (err) {
-    console.error(err);
-    showToast(`Failed: ${err.message}`, 'error');
-  }
-}
-
-window.approveDoc = async (docId) => {
-  await updateStatus(docId, 'approved');
-};
-
-window.rejectDoc = async (docId) => {
-  await updateStatus(docId, 'rejected');
-};
 
 // ---- Utility ----
 function escapeHtml(str) {
