@@ -1,6 +1,7 @@
 // ============================================
 // Cab Bill Scanner - Admin Management Page
 // ============================================
+console.log('manage.js loaded');
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import { getFirestore, collection, getDocs, doc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
@@ -222,7 +223,9 @@ async function loadAllSubmissions() {
 }
 
 // ---- Sync Sheet ----
+console.log('Setting up sync button');
 const syncSheetBtn = document.getElementById('syncSheetBtn');
+console.log('syncSheetBtn found:', !!syncSheetBtn);
 if (syncSheetBtn) {
   syncSheetBtn.addEventListener('click', async () => {
     syncSheetBtn.disabled = true;
