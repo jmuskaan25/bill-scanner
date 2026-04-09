@@ -228,11 +228,13 @@ if (syncSheetBtn) {
     syncSheetBtn.disabled = true;
     syncSheetBtn.textContent = 'Syncing...';
     try {
+      if (!functions) throw new Error('Firebase Functions not initialized');
       const backfillFn = httpsCallable(functions, 'backfillSheet');
       const result = await backfillFn({});
       showToast(`Synced ${result.data.synced} records to Google Sheet`, 'success');
     } catch (err) {
-      console.error(err);
+      console.error('Sync error:', err);
+      alert('Sync error: ' + err.message);
       showToast(`Sync failed: ${err.message}`, 'error');
     } finally {
       syncSheetBtn.disabled = false;
