@@ -87,11 +87,8 @@ async function loadRecentSubmissions() {
   submissionsBody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:32px;color:#9ca3af;">Loading...</td></tr>`;
 
   try {
-    // Admin sees all; regular user sees only their own
-    const isAdmin = sessionStorage.getItem('via_admin') === '1';
-    const q = isAdmin
-      ? collection(db, 'reimbursements')
-      : query(collection(db, 'reimbursements'), where('email', '==', currentUser.email));
+    // Everyone sees only their own submissions (admin uses Manage page for all)
+    const q = query(collection(db, 'reimbursements'), where('email', '==', currentUser.email));
     const snapshot = await getDocs(q);
 
     if (snapshot.empty) {
