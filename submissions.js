@@ -38,13 +38,6 @@ if (auth) {
       currentUser = user;
       sessionStorage.setItem('via_authed', '1');
       if (signInWall) signInWall.style.display = 'none';
-      if (sessionStorage.getItem('via_admin') === '1') {
-        const sheetLink = document.getElementById('sheetLink');
-        if (sheetLink) {
-          sheetLink.href = CONFIG.GOOGLE_SHEET_URL || '#';
-          sheetLink.style.display = 'inline';
-        }
-      }
       loadRecentSubmissions();
     } else {
       sessionStorage.removeItem('via_authed');
